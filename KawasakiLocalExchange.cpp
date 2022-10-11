@@ -12,6 +12,16 @@
 int seed;
 
 
+// Just pauses the script and waits for the user to press enter
+void pause_for_input() {
+    std::cout << "\nPress Enter to continue\n";
+    // Clears the buffer of any extra bits
+    fflush(stdin);
+    getchar();
+
+}
+
+
 // Generate random int: by default this is from [0, 1]
 // Note it actually generates a number between [0, 2) so when being used it should thought of as [min, max + 1)
 int random_int(int min = 0, int max = 2)
@@ -80,8 +90,8 @@ private:
 
     // Coupeling Constant
     double J;
-    // External Mag Field
-    double H;
+    // External E Field
+    double E;
     // Tempurature
     double T;
 
@@ -94,8 +104,31 @@ private:
     std::vector<std::vector<int>> lattice;
 
     // Energy
-    int E;
+    int energy;
 
+
+    // Boltzman Energy. jolt ties to J, holt ties to h
+    // Saving these as Maps, with their key as the DE and values as the actual exp
+    std::map<int, double> joltzman;
+    std::map<int, double> eoltzman;
+
+    // Initialize the arrays that hold the Boltzman values
+    // joltzman for J Boltzman
+    void init_joltzman() {
+        for (int i = 0; i <= 8; i++) {
+            joltzman[i] = exp((-2.0 * i) / T);  // for loop goes from 0 to 8
+        }
+
+    }
+
+    // Initialize the arrays that hold the Boltzman values
+    // sadly, this is not a dune reference
+    void init_eoltzman() {
+        for (int i = 0; i <=1; i++ ) {
+            eoltzman[i] = exp((-E * i) / T);
+        }
+
+    }
 
 
     // Place spins on the lattice
@@ -157,13 +190,24 @@ public:
     }
 
 
+    void nearest_neighbors(int dir, int r, int c) {
+        int rp, cp;
+
+        if (dir == 1) {(rp = r - 1 + R) % R; cp = c;}
+        else if (dir == 2) {rp = r; (cp = c + 1) % C;}
+        else if (dir == 3) {(rp = r + 1) % R; cp = c;}
+        else if (dir == 4) {rp = r; (cp = c -1 + C) % C;} // But what to do if it's out of bounds?
+
+    }
+
+
     // Prints the Lattice
     void print_lattice() {
         for (int i = 0; i < R; i++){
             for (int j = 0; j < C; j++){
-                std::cout << lattice[i][j] << "\t";
-                // if (lattice[i][j] == 1) { std::cout << "+" << "\t"; }
-                // else if (lattice[i][j] == -1) { std::cout << "-" << "\t"; } 
+                // std::cout << lattice[i][j] << "\t";
+                if (lattice[i][j] == 1) { std::cout << "1" << "\t"; }
+                else if (lattice[i][j] == 0) { std::cout << " " << "\t"; } 
             }
             std::cout << "\n";
         }
@@ -171,21 +215,30 @@ public:
         std::cout << "\n";
     }
 
+    int get_R() {
+        return(R);
+    }
+
+    int get_C() {
+        return(C);
+    }
+
 
     // Constructor
-    KawasakiLattice(int rows, int columns, double temp, double coupeling, double magfield, float density)
+    KawasakiLattice(int rows, int columns, double temp, double coupeling, double efield, float density)
     {
         R = rows;
         C = columns;
         // N = get_total_sites();
         T = temp;
         J = coupeling;
-        H = magfield;
+        E = efield;
         p = density;
         Pplus();
 
         init_lattice();
-
+        init_joltzman();
+        init_eoltzman();
 
         // lattice = init_lattice(); // places things on lattice
         // init_joltzman();
@@ -204,11 +257,11 @@ public:
 
 int main() {
     // long seed;
-    int Rows, Columns;
-    double Temp, Coupeling, Magfield;
+    int Rows, Columns, max_sweeps, print_first_lattice, print_final_lattice;
+    double Temp, Coupeling, Efield;
     float Density;
 
-    std::cout << "Input Seed\nSeed must not be 0: ";
+    std::cout << "Input Seed\nSeed must not be 0\nInput Seed: ";
     std::cin >> seed;
     fflush(stdin);
 
@@ -222,27 +275,67 @@ int main() {
     std::cin >> Columns;
     fflush(stdin);
 
+    int sweep_steps = Rows*Columns;
+
+
     std::cout << "Input tempurature: ";
     std::cin >> Temp;
     fflush(stdin);
 
-    std::cout << "Input External Mag Field (recomended to be 0): ";
-    std::cin >> Magfield;
+    std::cout << "Input External E Field: ";
+    std::cin >> Efield;
     fflush(stdin);
     
 
-    std::cout << "Coupeling Constant set to 1" << std::endl;
+    std::cout << "Coupeling Constant set to 1, Kb" << std::endl;
     fflush(stdin);
 
-    std::cout << "Choose a density for p+\nNumber must be between 0 and 1 (will round down): ";
+    std::cout << "Choose a density for p+\nNumber must be between 0 and 1 (will round down, recomend 0.5): ";
     std::cin >> Density;
     fflush(stdin);
 
-    KawasakiLattice motorcycle(Rows, Columns, Temp, 1.0, Magfield, Density);
-
-    motorcycle.print_lattice();
+    KawasakiLattice motorcycle(Rows, Columns, Temp, 1.0, Efield, Density);
     motorcycle.get_density();
 
+    std::cout << "Input number of sweeps to preform: ";
+    std::cin >> max_sweeps;
+    fflush(stdin);
+
+    std::cout << "\nDo you wish to see the inital lattice? 1 for yes 0 for no: ";
+    std::cin >> print_first_lattice;
+    fflush(stdin);
+
+    if (print_first_lattice == 1) {
+            std::cout << "Initial Lattice" << std::endl;
+            motorcycle.print_lattice();
+    }
+
+    std::cout << "\nDo you wish to see the final Lattice at the end?\n1 for yes, 0 for no: ";
+    std::cin >> print_final_lattice;
+    fflush(stdin);
+
+    std::cout << "Ready to begin simulation\nNote: this does NOT include a warm up phase" << std::endl;
+    pause_for_input();
+
+    for (int s = 1; s < max_sweeps + 1; s++) {
+        for (int t = 1; t < sweep_steps + 1; t++) {
+            int rran, cran, rpan, cpan, dir;
+
+            rran = random_int(0, motorcycle.get_R() + 1); 
+            cran = random_int(0, motorcycle.get_C() + 1); // gets a random position
+
+            dir = random_int(1, 5); // returns a number between 1 and 4
+
+            
+
+        }
+    }
+
+
+    if (print_final_lattice == 1) {
+        std::cout << "Final Lattice:" << std::endl;
+        motorcycle.print_lattice();
+    }
 
 
 }
