@@ -6,94 +6,10 @@
 # include <fstream>
 # include <numeric>
 # include <string>
-// # include "numRec.h"
+# include "ran2.h"
 
 // Declaring seed to be a global variable. Trying to avoid declaring anything else as global
-long seed;
-
-
-/* RAN2 from Numerical Methods in C
-Keeping this here in case I want to use it. It works, but it works differently then ran2 from cpp. This chunk came from Numerical Recipies in C
-as given by Dr. Bassler. The ran2 used here is from Numerical Recipies in C++, which is written by the same people but as you can see uses some values differently.
-**/
-// definitions for ran2
-# define IM1 2147483563
-# define IM2 2147483399
-# define AM (1.0/IM1)
-# define IMM1 (IM1-1)
-# define IA1 40014
-# define IA2 40692
-# define IQ1 53668
-# define IQ2 52774
-# define IR1 12211
-# define IR2 3791
-# define NTAB 32
-# define NDIV (1+IMM1/NTAB)
-# define EPS 1.2e-7
-# define RNMX (1.0-EPS)
-
-// ran2, copied from page 282 of Numerical Recipies (defines at top)
-float ran2(long *idum)
-{
-
-    int j;
-    long k;
-    static long idum2 = 123456789;
-    static long iy = 0;
-    static long iv[NTAB];
-    float temp;
-
-    if (*idum <= 0) {                     // This just initilzes
-        if (-(*idum) < 1) *idum = 1;  // prevents idum from being 0
-        else *idum = -(*idum);
-
-        idum2 = (*idum);
-
-        for (j = NTAB + 7; j >=0; j--) {  // shuffles the values
-            k = (*idum) / IQ1;
-            *idum = IA1 * (*idum - k*IQ1) - k*IR1;  // pretty sure this is *idum - (k*IQ1), hence the lack of spacing
-            if (*idum < 0) *idum += IM1; 
-            if (j < NTAB) iv[j] = *idum;
-        }
-        iy = iv[0];
-    }
-
-    k = (*idum) / IQ1;
-    *idum = IA1 * (*idum - k*IQ1) - k*IQ1;
-
-    if (*idum < 0) *idum += IM1;
-
-    k = idum2 / IQ2;
-    idum2 = IA2 * (idum2 - k*IQ2) - k*IQ2;
-
-    if (idum2 < 0) idum2 += IM2;
-
-    j = iy / NDIV;
-    iy = iv[j] - idum2;
-    iv[j] = *idum;
-
-    if (iy < 1) iy += IMM1;
-    if ((temp = AM* iy) > RNMX) return RNMX;
-    else return temp;
-
-}
-
-#undef IM1
-#undef IM2
-#undef AM
-#undef IMM1
-#undef IA1
-#undef IA2
-#undef IQ1
-#undef IQ2
-#undef IR1
-#undef IR2
-#undef NTAB
-#undef NDIV
-#undef EPS
-#undef RNMX
-
-
+int seed;
 
 
 // Generate random int: by default this is from [0, 1]
@@ -101,7 +17,7 @@ float ran2(long *idum)
 int random_int(int min = 0, int max = 2)
 {
 
-    float rval = ran2(&seed);
+    float rval = NR::ran2(seed);
     int i = min + ((max - min) * rval);
     // std::cout << "Rval: " << rval << " Rnt: " << i << std::endl;
 
@@ -292,15 +208,19 @@ int main() {
     double Temp, Coupeling, Magfield;
     float Density;
 
-    std::cout << "Input Seed: ";
+    std::cout << "Input Seed\nSeed must not be 0: ";
     std::cin >> seed;
     fflush(stdin);
 
-    std::cout << "Input [square] lattice size: ";
+    if (seed > 0) {seed = -1 * seed;}
+
+    std::cout << "Input lattice rows: ";
     std::cin >> Rows;
     fflush(stdin);
 
-    Columns = Rows;
+    std::cout << "Input lattice Columns: ";
+    std::cin >> Columns;
+    fflush(stdin);
 
     std::cout << "Input tempurature: ";
     std::cin >> Temp;
