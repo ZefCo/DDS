@@ -175,6 +175,36 @@ private:
     }
 
 
+    // Finds the nearest neighbor to the randomly selected particle
+    // then picks a direction and at random: order is starts at bottom and goes ccw... I think
+    int* nearest_neighbor(int r, int c, int dir) {
+        int rp, cp;
+
+        int prime[2];
+
+        if (dir == 1) {(rp = r - 1 + R) % R; cp = c;}
+        else if (dir == 2) {rp = r; (cp = c + 1) % C;}
+        else if (dir == 3) {(rp = r + 1) % R; cp = c;}
+        else if (dir == 4) {rp = r; (cp = c -1 + C) % C;} // But what to do if it's out of bounds?
+
+        return prime;
+
+    }
+
+    // Finds the positions of the nearest neighbors
+    // Order being returned is Down, Right, Up, Left: starts at bottom goes ccw
+    int* nearest_neighbors(int r, int c) {
+        int rowd = (r - 1 + R) % R; // down one
+        int coll = (c + 1) % C; // right one
+        int rowu = (r + 1) % R; // up one
+        int colr = (c - 1 + C) % C; // left one
+
+        int nn[4] = {rowd, coll, rowu, colr};
+
+        return nn;
+
+    }
+
 
 public:
 
@@ -190,13 +220,24 @@ public:
     }
 
 
-    void nearest_neighbors(int dir, int r, int c) {
-        int rp, cp;
+    int delta_energy(int row, int col, int dir) {
+        int local_energy, prime_energy, return_energy;
+        int* prime_position = nearest_neighbor(row, col, dir);
 
-        if (dir == 1) {(rp = r - 1 + R) % R; cp = c;}
-        else if (dir == 2) {rp = r; (cp = c + 1) % C;}
-        else if (dir == 3) {(rp = r + 1) % R; cp = c;}
-        else if (dir == 4) {rp = r; (cp = c -1 + C) % C;} // But what to do if it's out of bounds?
+        if (lattice[row][col] != lattice[prime_position[0]][prime_position[1]]) {
+            int* local_neighbors = nearest_neighbors(row, col);
+            int* prime_neighbors = nearest_neighbors(prime_position[0], prime_position[1]);
+
+            // int local_energy = lattice[r][c] * (lattice)
+
+            local_energy = (lattice[local_neighbors[0]][col] + lattice[row][local_neighbors[1]] + lattice[local_neighbors[2]][col] + lattice[row][local_neighbors[3]]) * lattice[row][col]; 
+            prime_energy = (lattice[prime_neighbors[0]][prime_position[1]] + lattice[prime_position[0]][prime_neighbors[1]] + lattice[prime_neighbors[2]][prime_position[1]] + lattice[prime_position[0]][prime_neighbors[3]]) * lattice[prime_position[0]][prime_position[1]]; 
+
+            return_energy = local_energy + prime_energy;
+        }
+        else {return_energy = -1;}
+
+        return return_energy;
 
     }
 
@@ -320,11 +361,13 @@ int main() {
     for (int s = 1; s < max_sweeps + 1; s++) {
         for (int t = 1; t < sweep_steps + 1; t++) {
             int rran, cran, rpan, cpan, dir;
+            int energy;
 
             rran = random_int(0, motorcycle.get_R() + 1); 
             cran = random_int(0, motorcycle.get_C() + 1); // gets a random position
 
             dir = random_int(1, 5); // returns a number between 1 and 4
+            energy = motorcycle.delta_energy(dir, rran, cran);
 
             
 
