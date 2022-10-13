@@ -7,6 +7,7 @@
 # include <numeric>
 # include <string>
 # include "ran2.h"
+# include <array>
 
 // Declaring seed to be a global variable. Trying to avoid declaring anything else as global
 int seed;
@@ -215,18 +216,21 @@ private:
 
 public:
 
-    int delta_energy(int row, int col, int dir) {
+    int delta_energy(int row, int col, int rop, int cop) {
         int local_energy, prime_energy, return_energy;
-        std::array<int, 2> prime_position = nearest_neighbor(row, col, dir);
+        // std::array<int, 2> prime_position = nearest_neighbor(row, col, dir);
 
         // std::cout << lattice[row][col] << std::endl;//"\t" << lattice[prime_position[0]][prime_position[1]] << std::endl;
 
-        if (lattice[row][col] != lattice[prime_position[0]][prime_position[1]]) {
+        if (lattice[row][col] != lattice[rop][cop]) {
             std::array<int, 4> local_neighbors = nearest_neighbors(row, col);
-            std::array<int, 4> prime_neighbors = nearest_neighbors(prime_position[0], prime_position[1]);
+            std::array<int, 4> prime_neighbors = nearest_neighbors(rop, cop);
 
-            local_energy = (lattice[local_neighbors[0]][col] + lattice[row][local_neighbors[1]] + lattice[local_neighbors[2]][col] + lattice[row][local_neighbors[3]]) * lattice[row][col]; 
-            prime_energy = (lattice[prime_neighbors[0]][prime_position[1]] + lattice[prime_position[0]][prime_neighbors[1]] + lattice[prime_neighbors[2]][prime_position[1]] + lattice[prime_position[0]][prime_neighbors[3]]) * lattice[prime_position[0]][prime_position[1]]; 
+            int rowd = local_neighbors[0]; int colr = local_neighbors[1]; int rowu = local_neighbors[2]; int coll = local_neighbors[3];
+            int ropd = prime_neighbors[0]; int copr = local_neighbors[1]; int ropu = local_neighbors[2]; int copl = local_neighbors[3];
+
+            local_energy = (lattice[rowd][col] + lattice[row][colr] + lattice[rowu][col] + lattice[row][coll]) * lattice[row][col]; 
+            prime_energy = (lattice[ropd][cop] + lattice[rop][copr] + lattice[ropu][cop] + lattice[rop][copl]) * lattice[rop][cop]; 
 
             return_energy = local_energy + prime_energy;
         }
@@ -306,47 +310,56 @@ public:
 
 
     void sweep() {
-        std::cout << "\nline 309";
+        // std::cout << "\nline 309";
         int moves = 0;
         for (int n = 1; n < N + 1; n++) {
-            std::cout << "\tline 312";
-            int rran, cran, rpan, cpan, dir;
+            // std::cout << "\tline 312";
+            int rran, cran, rrap, crap, dir;
             int energy;
             int exchange_one, exchange_two;
 
-            std::cout << "\tline 317";
+            // std::cout << "\tline 317";
             rran = random_int(0, R); 
             cran = random_int(0, C); // gets a random position
 
-            std::cout << "\tline 321";
+            // std::cout << "\tline 321";
             dir = random_int(1, 5); // returns a number between 1 and 4
-            energy = delta_energy(rran, cran, dir);
+
+            std::array<int, 2> prime_position = nearest_neighbor(rran, cran, dir);
+            rrap = prime_position[0]; crap = prime_position[1];
+
+            // nearest_neighbor
+            energy = delta_energy(rran, cran, rrap, crap);
 
             if (energy > -1) {
-                std::cout << "\tline 326";
+                // std::cout << "\tline 326";
                 float probability = joltzman[energy];
-                std::cout << "\tline 328" << std::endl;
+                // std::cout << "\tline 328" << std::endl;
                 float chance = NR::ran2(seed);
-                std::cout << "chance = " << chance << std::endl;
-                std::cout << "probability = " << probability << std::endl;
+                // std::cout << "Chance = " << chance << " Probability = " << probability << std::endl;
+                // std::cout << "probability = " << probability << std::endl;
 
                 if (probability >= chance) {
-                    std::cout << "Exchanging positions" << std::endl;
-                    std::cout << "Rran = " << rran << " Cran = " << cran << " Rran' = " << rpan << " Cran' = " << cpan << std::endl;
+                    // std::cout << "Exchanging positions" << std::endl;
+                    // std::cout << "Rran = " << rran << " Cran = " << cran << " Rran' = " << rrap << " Cran' = " << crap << std::endl;
                     exchange_one = lattice[rran][cran];
-                    exchange_two = lattice[rpan][cpan];
+                    exchange_two = lattice[rrap][crap];
 
-                    std::cout << exchange_one << "\t" << exchange_two << std::endl;
+                    // std::cout << exchange_one << "\t" << exchange_two << std::endl;
                     
-                    std::cout << "The actual exchange" << std::endl;
+                    // std::cout << "The actual exchange" << std::endl;
                     lattice[rran][cran] = exchange_two;
-                    lattice[rpan][cpan] = exchange_one;
+                    lattice[rrap][crap] = exchange_one;
 
                     moves += 1;
 
                 }
-                
             }
+
+            // std::cout << n << std::endl;
+            // print_lattice();
+            // std::cout << "Total Moves made: " << moves << std::endl;
+
         }
 
         // std::cout << "Total Moves made: " << moves << std::endl;
@@ -451,6 +464,7 @@ int main() {
 
     for (int s = 1; s < max_sweeps + 1; s++) {
         motorcycle.sweep();
+        // std::cout << "Finished sweep " << s << std::endl;
 
     }
 
