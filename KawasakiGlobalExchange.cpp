@@ -7,6 +7,7 @@
 # include <numeric>
 # include <string>
 # include "ran2.h"
+# include "rlft3.h"
 # include <array>
 
 // Declaring seed to be a global variable. Trying to avoid declaring anything else as global
@@ -15,8 +16,8 @@ int seed;
 
 // Just pauses the script and waits for the user to press enter
 void pause_for_input() {
-    fflush(stdin);
     std::cout << "\nPress Enter to continue\n";
+    // std::cin.clear();
     // Clears the buffer of any extra bits
     fflush(stdin);
     getchar();
@@ -51,16 +52,6 @@ int random_spin()
 }
 
 
-struct POnes
-{
-
-};
-
-
-struct PZeros 
-{
-
-};
 
 
 // Holds the position of particle
@@ -99,8 +90,8 @@ private:
 
     // % of +
     float p;
-    // # of +
-    int P;
+    // // # of +
+    // int P;
 
     // The lattice
     std::vector<std::vector<int>> lattice;
@@ -113,6 +104,28 @@ private:
     // Saving these as Maps, with their key as the DE and values as the actual exp
     std::map<int, double> joltzman;
     std::map<int, double> eoltzman;
+
+
+    // Struct to hold all the 1s
+    struct POnes
+    {
+        std::vector<std::array<int, 2>> oindex;
+        int length;
+
+    };
+
+
+    // Struct to hold all the 0s
+    struct PZeros 
+    {
+        std::vector<std::array<int, 2>> zindex;
+        int length;
+
+    };
+
+    POnes PO;
+    PZeros PZ;
+
 
     // Initialize the arrays that hold the Boltzman values
     // joltzman for J Boltzman
@@ -138,6 +151,14 @@ private:
 
         N = R * C;
 
+        //     float localP = p * (float)sites;
+        //     P = (int)localP;
+
+        PO.length = (int)(p * (float)N);
+        PZ.length = N - PO.length;
+        // std::cout << "### " << PO.length << "  " << PZ.length << " ###" << std::endl;
+
+
         // Generate lattice vector
         lattice.resize(R);
         for (int i = 0; i < R; i++) {
@@ -154,29 +175,47 @@ private:
         }
 
         // Place gas on lattice
-        for (int k = 0; k < P; k++) {
-            // for (int i = 0; i < R)
-            int i = random_int(0, R);
-            int j = random_int(0, C);
+        // The reason for doing it like this - making the lattice, placing holes, then placing the gas - is to
+        // preserve the density. 
+        for (int k = 0; k < PO.length; k++) {
+            bool looking = true;
 
-            lattice[i][j] = 1;
+            do {
+                int i = random_int(0, R); // Generate a random position
+                int j = random_int(0, C);
+                int local_site = lattice[i][j]; // get the value at that position
+                if (local_site == 0) {lattice[i][j] = 1; looking = false;} // if it's 0, make it 1, else keep looking
+            } while(looking);
+
+            
         }
 
+        // Locate holes and gas, index them in the Structs
+        int osafety = 0, zsafety= 0;
+        for (int i = 0; i < R; i++) {
+            for (int j = 0; j < C; j++) {
+                int gas = lattice[i][j];
 
-        // Locate holes on gas
+                if (gas == 1) {PO.oindex.push_back({i, j}); osafety += 1;}
+                else {PZ.zindex.push_back({i, j}); zsafety += 1;}
+            }
+        }
+
+        if (PO.length != osafety) {PO.length = osafety;} // Makes sure that everything actually did what it's supposed to do.
+        if (PZ.length != zsafety) {PZ.length = zsafety;} // Well there are better ways to do it then this
 
     }
 
 
-    // Density of +
-    void Pplus() {
-        int sites = R * C;
+    // // Density of +
+    // void Pplus() {
+    //     int sites = R * C;
 
-        float localP = p * (float)sites;
-        P = (int)localP;
+    //     float localP = p * (float)sites;
+    //     P = (int)localP;
 
-        // return psites;
-    }
+    //     // return psites;
+    // }
 
 
     // Finds the nearest neighbor to the randomly selected particle
@@ -248,7 +287,7 @@ public:
         std::cout << "\nInputs:" << std::endl;
         std::cout << "Current Seed: " << seed << std::endl;
         std::cout << "Dimensions of Lattice: " << R << " x " << C << std::endl;
-        std::cout << "Density (% & #): " << p << " " << P << "\tTempurature: " << T << "\tE Field: " << E << "\tJ = k (1, dimensionless)" << std::endl;
+        std::cout << "Density of Ones (% & #): " << p << " " << PO.length << "\tTempurature: " << T << "\tE Field: " << E << "\tJ = k (1, dimensionless)" << std::endl;
         print_boltzman();
         // std::cout << "Sweeps: " << max_sweeps << std::endl;
         // std::cout << "Measurement will be taken every 1/" << partial << "sweep" << std::endl;
@@ -264,7 +303,7 @@ public:
 
     // In case I need the total spins
     void get_density() {
-        std::cout << "Density is:\tp = " << p << "\tP = " << P << std::endl;
+        std::cout << "Density ones is:\tp = " << p << "\tP = " << PO.length << std::endl;
     }
 
     int get_R() {
@@ -309,28 +348,103 @@ public:
     }
 
 
+    void print_index() {
+        int large_index, small_index;
+        string gap_output = "          ";
+
+
+        // std::cout << PO.length << " " << PZ.length << std::endl;
+
+        if (PO.length == PZ.length) {small_index = PO.length; large_index = 0;}
+        else if (PO.length > PZ.length) {large_index = PO.length; small_index = PZ.length;}
+        else {large_index = PZ.length; small_index = PO.length;}
+        
+        // 4 characters - 10 characters - 5 chracaters
+        std::cout << "Ones" << gap_output << "Zeros" << std::endl; 
+        for (int index = 0; index < small_index; index++) {
+            std::array ones = PO.oindex[index]; std::array zeroes = PZ.zindex[index];
+            
+            string ones_output = "(" + std::to_string(ones[0]) + ", " + std::to_string(ones[1]) + ")";
+            string zeros_output = "(" + std::to_string(zeroes[0]) + ", " + std::to_string(zeroes[1]) + ")";
+            
+            std::cout <<  ones_output << gap_output << zeros_output << std::endl;
+        }
+
+        if (large_index > 0) {
+
+            // std::cout << "Large index = " << large_index << std::endl;
+            // std::cout << "One Index = " << PO.length << std::endl;
+            // std::cout << "Zero Index = " << PZ.length << std::endl;
+
+            if (PO.length > PZ.length){
+                for (int index = small_index + 1; index < large_index; index++) {
+                    std::array ones = PO.oindex[index];
+                    
+                    string ones_output = "(" + std::to_string(ones[0]) + ", " + std::to_string(ones[1]) + ")";
+                    
+                    std::cout <<  ones_output << std::endl;
+                }
+            }
+
+            else if (PZ.length > PO.length){
+                string gap_output = "                 ";
+                for (int index = small_index + 1; index < large_index; index++) {
+                    std::array zeros = PZ.zindex[index];
+                    
+                    string zeros_output = "(" + std::to_string(zeros[0]) + ", " + std::to_string(zeros[1]) + ")";
+                    
+                    std::cout << gap_output << zeros_output << std::endl;
+                }
+            }
+        }
+
+
+        // std::cout << "Ones Elements" << std::endl;
+        // for (int index = 0; index <= PO.length; index++) {
+        //     std::cout << "( " << element[0] << ", " << element[1] << " )" << std::endl;
+        // }
+
+        // std::cout << "Zeroes Elements" << std::endl;
+        // for (std::array element: PZ.zindex) {
+        //     std::cout << "( " << element[0] << ", " << element[1] << " )" << std::endl;
+        // }
+    }
+
+
+    // Not sure how this is going to work yet... but we're going to look at the structure function
+    void structure() {
+
+        std::vector<std::vector<int>> copy = lattice; // Copies the lattice, so we don't end up screwing anything up
+
+        NR::rlft3(copy, )
+
+    }
+
+
 
     void sweep() {
         // std::cout << "\nline 309";
         int moves = 0;
         for (int n = 1; n < N + 1; n++) {
             // std::cout << "\tline 312";
-            int rran, cran, rrap, crap, dir;
-            int energy;
-            int exchange_one, exchange_two;
+            int oran, zran, energy;
+            std::array<int, 2> one_position, zero_position;
+            // std::array<int, 2> exchange_one, exchange_zero;
 
             // std::cout << "\tline 317";
-            rran = random_int(0, R); 
-            cran = random_int(0, C); // gets a random position
+            oran = random_int(0, PO.length); 
+            zran = random_int(0, PZ.length); // gets a random position
 
             // std::cout << "\tline 321";
-            dir = random_int(1, 5); // returns a number between 1 and 4
+            // dir = random_int(1, 5); // returns a number between 1 and 4
 
-            std::array<int, 2> prime_position = nearest_neighbor(rran, cran, dir);
-            rrap = prime_position[0]; crap = prime_position[1];
+            one_position = PO.oindex[oran]; zero_position = PZ.zindex[zran];
+
+            // std::array<int, 2> prime_position = nearest_neighbor(rran, cran, dir);
+            // rrap = prime_position[0]; crap = prime_position[1];
 
             // nearest_neighbor
-            energy = delta_energy(rran, cran, rrap, crap);
+            energy = delta_energy(one_position[0], one_position[1], zero_position[0], zero_position[1]);
 
             if (energy > -1) {
                 // std::cout << "\tline 326";
@@ -341,16 +455,19 @@ public:
                 // std::cout << "probability = " << probability << std::endl;
 
                 if (probability >= chance) {
+                    PO.oindex[oran] = zero_position; PZ.zindex[zran] = one_position;
+                    lattice[one_position[0]][one_position[1]] = 0;
+                    lattice[zero_position[0]][zero_position[1]] = 1;
                     // std::cout << "Exchanging positions" << std::endl;
                     // std::cout << "Rran = " << rran << " Cran = " << cran << " Rran' = " << rrap << " Cran' = " << crap << std::endl;
-                    exchange_one = lattice[rran][cran];
-                    exchange_two = lattice[rrap][crap];
+                    // exchange_one = lattice[rran][cran];
+                    // exchange_zero = lattice[rrap][crap];
 
                     // std::cout << exchange_one << "\t" << exchange_two << std::endl;
                     
                     // std::cout << "The actual exchange" << std::endl;
-                    lattice[rran][cran] = exchange_two;
-                    lattice[rrap][crap] = exchange_one;
+                    // lattice[rran][cran] = exchange_two;
+                    // lattice[rrap][crap] = exchange_one;
 
                     moves += 1;
 
@@ -378,7 +495,7 @@ public:
         J = coupeling;
         E = efield;
         p = density;
-        Pplus();
+        // Pplus();
 
         init_lattice();
         init_joltzman();
@@ -401,7 +518,7 @@ public:
 
 int main() {
     // long seed;
-    int Rows, Columns, max_sweeps, print_first_lattice, print_final_lattice;
+    int Rows, Columns, max_sweeps, print_first_lattice, print_final_lattice, print_position_index;
     double Temp, Coupeling, Efield;
     float Density;
 
@@ -446,6 +563,14 @@ int main() {
     motorcycle.get_inputs();
     std::cout << "Will preform " << max_sweeps << " sweeps\n\t" << motorcycle.get_total_sites() << " steps ever sweep" << std::endl;
 
+    std::cout << "\nDo you wish to see the positional index? 1 for yes 0 for no: ";
+    std::cin >> print_position_index;
+    fflush(stdin);
+
+    if (print_position_index) {
+        motorcycle.print_index();
+    }
+
     std::cout << "\nDo you wish to see the inital lattice? 1 for yes 0 for no: ";
     std::cin >> print_first_lattice;
     fflush(stdin);
@@ -466,6 +591,10 @@ int main() {
     for (int s = 1; s < max_sweeps + 1; s++) {
         motorcycle.sweep();
         // std::cout << "Finished sweep " << s << std::endl;
+        if ((s % 100000) == 0) {
+            std::cout << "Completed Sweep " << s << std::endl;
+        }
+
 
     }
 
