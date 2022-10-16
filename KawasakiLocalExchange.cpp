@@ -11,7 +11,7 @@
 # include "HeaderFiles/ran2cpp.h"
 
 // Declaring seed to be a global variable. Trying to avoid declaring anything else as global
-int seed;
+long seed;
 
 
 // Just pauses the script and waits for the user to press enter
@@ -347,9 +347,11 @@ public:
             int exchange_one, exchange_two;
             bool print_rval = false;
 
+            // std::cout << "\tline 317";
             rran = random_int(0, R); 
             cran = random_int(0, C); // gets a random position
 
+            // std::cout << "\tline 321";
             dir = random_int(1, 5); // returns a number between 1 and 4
 
             std::array<int, 2> prime_position = nearest_neighbor(rran, cran, dir);
