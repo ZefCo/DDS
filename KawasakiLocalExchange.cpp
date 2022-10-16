@@ -10,7 +10,7 @@
 # include <array>
 
 // Declaring seed to be a global variable. Trying to avoid declaring anything else as global
-int seed;
+long seed;
 
 
 // Just pauses the script and waits for the user to press enter
@@ -29,10 +29,10 @@ void pause_for_input() {
 int random_int(int min = 0, int max = 2)
 {
 
-    float rval = NR::ran2(seed);
+    float rval = ran2(&seed);
+    // if (print_rval){std::cout << "Rval: " << rval;}
     int i = min + ((max - min) * rval);
-    // std::cout << "Rval: " << rval << " Rnt: " << i << std::endl;
-
+    // if (print_rval){std::cout << " Rnt: " << i << " Seed : " << seed << std::endl;}
     return i;
 }
 
@@ -126,8 +126,8 @@ private:
     // Initialize the arrays that hold the Boltzman values
     // sadly, this is not a dune reference
     void init_eoltzman() {
-        for (int i = 0; i <=1; i++ ) {
-            eoltzman[i] = exp((-E * i) / T);
+        for (int i = -1; i <=1; i++ ) {
+            eoltzman[i] = exp((E * i) / T);
         }
 
     }
@@ -155,15 +155,15 @@ private:
 
         // Place gas on lattice
         for (int k = 0; k < P; k++) {
-            // for (int i = 0; i < R)
-            int i = random_int(0, R);
-            int j = random_int(0, C);
+            bool looking = true;
 
-            lattice[i][j] = 1;
+            do {
+                int i = random_int(0, R); // Generate a random position
+                int j = random_int(0, C);
+                int local_site = lattice[i][j]; // get the value at that position
+                if (local_site == 0) {lattice[i][j] = 1; looking = false;} // if it's 0, make it 1, else keep looking
+            } while(looking);
         }
-
-
-        // Locate holes on gas
 
     }
 
@@ -180,16 +180,16 @@ private:
 
 
     // Finds the nearest neighbor to the randomly selected particle
-    // then picks a direction and at random: order is starts at bottom and goes ccw... I think
+    // then picks a direction and at random: order is starts at bottom and goes cw
     std::array<int, 2> nearest_neighbor(int row, int col, int dir) {
 
         int rowp, colp;
         std::array<int, 2> prime;
 
-        if (dir == 1) {rowp = (row + 1) % R; colp = col;}
-        else if (dir == 2) {rowp = row; colp = (col - 1 + C) % C;}
-        else if (dir == 3) {rowp = (row - 1 + R) % R; colp = col;}
-        else if (dir == 4) {rowp = row; colp = (col + 1) % C;}
+        if (dir == 1) {rowp = (row + 1) % R; colp = col;}  // down one
+        else if (dir == 2) {rowp = row; colp = (col - 1 + C) % C;}  // left one
+        else if (dir == 3) {rowp = (row - 1 + R) % R; colp = col;} // up one
+        else if (dir == 4) {rowp = row; colp = (col + 1) % C;}  // right one
 
 
         prime = {rowp, colp};
@@ -199,7 +199,7 @@ private:
     }
 
     // Finds the positions of the nearest neighbors
-    // Order being returned is Down, Right, Up, Left: starts at bottom goes ccw
+    // Order being returned is Down, Left, Up, Right: starts at bottom goes cw
     std::array<int, 4> nearest_neighbors(int r, int c) {
         std::array<int, 4> nn;
 
@@ -208,7 +208,7 @@ private:
         int rowd = (r + 1) % R; // down one
         int coll = (c - 1 + C) % C; // left one
 
-        nn = {rowd, coll, rowu, colr};
+        nn = {rowd, coll, rowu, colr};  // while the above does not start at the bottom and go cw, the return part does
 
         return nn;
 
@@ -223,19 +223,16 @@ public:
 
         // std::cout << lattice[row][col] << std::endl;//"\t" << lattice[prime_position[0]][prime_position[1]] << std::endl;
 
-        if (lattice[row][col] != lattice[rop][cop]) {
-            std::array<int, 4> local_neighbors = nearest_neighbors(row, col);
-            std::array<int, 4> prime_neighbors = nearest_neighbors(rop, cop);
+        std::array<int, 4> local_neighbors = nearest_neighbors(row, col);
+        std::array<int, 4> prime_neighbors = nearest_neighbors(rop, cop);
 
-            int rowd = local_neighbors[0]; int colr = local_neighbors[1]; int rowu = local_neighbors[2]; int coll = local_neighbors[3];
-            int ropd = prime_neighbors[0]; int copr = local_neighbors[1]; int ropu = local_neighbors[2]; int copl = local_neighbors[3];
+        int rowd = local_neighbors[0]; int colr = local_neighbors[1]; int rowu = local_neighbors[2]; int coll = local_neighbors[3];
+        int ropd = prime_neighbors[0]; int copr = local_neighbors[1]; int ropu = local_neighbors[2]; int copl = local_neighbors[3];
 
-            local_energy = (lattice[rowd][col] + lattice[row][colr] + lattice[rowu][col] + lattice[row][coll]) * lattice[row][col]; 
-            prime_energy = (lattice[ropd][cop] + lattice[rop][copr] + lattice[ropu][cop] + lattice[rop][copl]) * lattice[rop][cop]; 
+        local_energy = (lattice[rowd][col] + lattice[row][colr] + lattice[rowu][col] + lattice[row][coll]) * lattice[row][col]; 
+        prime_energy = (lattice[ropd][cop] + lattice[rop][copr] + lattice[ropu][cop] + lattice[rop][copl]) * lattice[rop][cop];
 
-            return_energy = local_energy + prime_energy;
-        }
-        else {return_energy = -1;}
+        return_energy = local_energy + prime_energy;
 
         return return_energy;
 
@@ -248,7 +245,7 @@ public:
         std::cout << "\nInputs:" << std::endl;
         std::cout << "Current Seed: " << seed << std::endl;
         std::cout << "Dimensions of Lattice: " << R << " x " << C << std::endl;
-        std::cout << "Density (% & #): " << p << " " << P << "\tTempurature: " << T << "\tE Field: " << E << "\tJ = k (1, dimensionless)" << std::endl;
+        std::cout << "Density of 1s (% & #): " << p << " " << P << "\tTempurature: " << T << "\tE Field: " << E << "\tJ = k (1, dimensionless)" << std::endl;
         print_boltzman();
         // std::cout << "Sweeps: " << max_sweeps << std::endl;
         // std::cout << "Measurement will be taken every 1/" << partial << "sweep" << std::endl;
@@ -264,7 +261,17 @@ public:
 
     // In case I need the total spins
     void get_density() {
-        std::cout << "Density is:\tp = " << p << "\tP = " << P << std::endl;
+        std::cout << "Soft Density is:\tp = " << p << "\tP = " << P << std::endl;
+        
+        int hard_count = 0;
+
+        for (int r = 0; r < R; r++){
+            for (int c = 0; c < C; c++) {
+                if (lattice[r][c] == 1) {hard_count += 1;}
+            }
+        }
+
+        std::cout << "The hard count of 1s is " << hard_count << std::endl;
     }
 
     int get_R() {
@@ -299,7 +306,7 @@ public:
         for (int i = 0; i < R; i++){
             for (int j = 0; j < C; j++){
                 // std::cout << lattice[i][j] << "\t";
-                if (lattice[i][j] == 1) { std::cout << "1" << " "; }
+                if (lattice[i][j] == 1) { std::cout << "@" << " "; }
                 else if (lattice[i][j] == 0) { std::cout << " " << " "; } 
             }
             std::cout << "\n";
@@ -310,61 +317,45 @@ public:
 
 
 
-    void sweep() {
-        // std::cout << "\nline 309";
-        int moves = 0;
+    void sweep(int s) {
         for (int n = 1; n < N + 1; n++) {
-            // std::cout << "\tline 312";
-            int rran, cran, rrap, crap, dir;
-            int energy;
+            int rran, cran, rrap, crap, dir, q;
+            int energy, field_energy;
             int exchange_one, exchange_two;
+            bool print_rval = false;
 
-            // std::cout << "\tline 317";
             rran = random_int(0, R); 
             cran = random_int(0, C); // gets a random position
 
-            // std::cout << "\tline 321";
             dir = random_int(1, 5); // returns a number between 1 and 4
 
             std::array<int, 2> prime_position = nearest_neighbor(rran, cran, dir);
-            rrap = prime_position[0]; crap = prime_position[1];
+            rrap = prime_position[0]; crap = prime_position[1];  // gets the nearest neighbor in a direction
 
-            // nearest_neighbor
-            energy = delta_energy(rran, cran, rrap, crap);
+            if (lattice[rran][cran] != lattice[rrap][crap]) {  // checks if those neighbors are different: if not then proceed
 
-            if (energy > -1) {
-                // std::cout << "\tline 326";
-                float probability = joltzman[energy];
-                // std::cout << "\tline 328" << std::endl;
-                float chance = NR::ran2(seed);
-                // std::cout << "Chance = " << chance << " Probability = " << probability << std::endl;
-                // std::cout << "probability = " << probability << std::endl;
+                // nearest_neighbor
+                energy = delta_energy(rran, cran, rrap, crap); // Does not look at the Field
+
+                if (dir == 1) {q = 1;}
+                else if (dir == 3) {q = -1;}
+                else {q = 0;}  // Applies the field if it's going up or down, giving it a prefered direction.
+
+                field_energy = E * q;
+
+                float probability = joltzman[energy] * eoltzman[field_energy];
+                float chance = ran2(&seed);
 
                 if (probability >= chance) {
-                    // std::cout << "Exchanging positions" << std::endl;
-                    // std::cout << "Rran = " << rran << " Cran = " << cran << " Rran' = " << rrap << " Cran' = " << crap << std::endl;
                     exchange_one = lattice[rran][cran];
                     exchange_two = lattice[rrap][crap];
 
-                    // std::cout << exchange_one << "\t" << exchange_two << std::endl;
-                    
-                    // std::cout << "The actual exchange" << std::endl;
                     lattice[rran][cran] = exchange_two;
                     lattice[rrap][crap] = exchange_one;
 
-                    moves += 1;
-
                 }
             }
-
-            // std::cout << n << std::endl;
-            // print_lattice();
-            // std::cout << "Total Moves made: " << moves << std::endl;
-
         }
-
-        // std::cout << "Total Moves made: " << moves << std::endl;
-
     }
 
 
@@ -423,10 +414,10 @@ int main() {
     std::cin >> Temp;
     fflush(stdin);
 
-    // std::cout << "Input External E Field: ";
-    // std::cin >> Efield;
-    // fflush(stdin);
-    std::cout << "External E Field set to 0 for now" << std::endl;
+    std::cout << "Input External E Field: ";
+    std::cin >> Efield;
+    fflush(stdin);
+    // std::cout << "External E Field set to 0 for now" << std::endl;
     
 
     std::cout << "Coupeling Constant set to 1, Kb" << std::endl;
@@ -464,8 +455,13 @@ int main() {
     // std::cout << std::endl;
 
     for (int s = 1; s < max_sweeps + 1; s++) {
-        motorcycle.sweep();
+        motorcycle.sweep(s);
         // std::cout << "Finished sweep " << s << std::endl;
+
+        if ((s % 100000) == 0) {
+            std::cout << "Completed Sweep " << s << std::endl;
+        }
+
 
     }
 
@@ -473,6 +469,8 @@ int main() {
         std::cout << "Final Lattice:" << std::endl;
         motorcycle.print_lattice();
     }
+
+    motorcycle.get_density();
 
 
 }
