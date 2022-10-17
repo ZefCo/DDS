@@ -411,14 +411,14 @@ public:
     }
 
 
-    // Not sure how this is going to work yet... but we're going to look at the structure function
-    void structure() {
+    // // Not sure how this is going to work yet... but we're going to look at the structure function
+    // void structure() {
 
-        std::vector<std::vector<int>> copy = lattice; // Copies the lattice, so we don't end up screwing anything up
+    //     std::vector<std::vector<int>> copy = lattice; // Copies the lattice, so we don't end up screwing anything up
 
-        NR::rlft3(copy, )
+    //     NR::rlft3(copy, )
 
-    }
+    // }
 
 
 
