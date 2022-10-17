@@ -416,7 +416,7 @@ public:
 
         std::vector<std::vector<int>> copy = lattice; // Copies the lattice, so we don't end up screwing anything up
 
-        NR::rlft3(copy, )
+        // NR::rlft3(copy, )
 
     }
 
