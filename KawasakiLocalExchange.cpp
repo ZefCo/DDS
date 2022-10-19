@@ -11,7 +11,7 @@
 # include "HeaderFiles/ran2cpp.h"
 
 // Declaring seed to be a global variable. Trying to avoid declaring anything else as global
-long seed;
+int seed;
 
 
 // Just pauses the script and waits for the user to press enter

@@ -80,11 +80,11 @@ int main() {
     // for (int s = 0; s < 2*R; s++) {speq[0][s] = 0;}
     std::cout << "Fuck Numerical Recipies" << std::endl;
 
-    try {
-        std::cout << "Working on FFT" << std::endl;
-        rlft3(copy_data, speq, 1);}
-    catch(exception& exc) {std::cout << "Yep, fuck Numerical Recipies" << std::endl;}
-    // NR::rlft3(copy_data, speq, 1);
+    // try {
+    //     std::cout << "Working on FFT" << std::endl;
+    //     // rlft3(copy_data, speq, 1);}
+    // catch(exception& exc) {std::cout << "Yep, fuck Numerical Recipies" << std::endl;}
+    // // NR::rlft3(copy_data, speq, 1);
     
 
     std::cout << "Finished beng fucked by Numerical Recipies" << std::endl;
