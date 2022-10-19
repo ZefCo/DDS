@@ -6,9 +6,9 @@
 # include <fstream>
 # include <numeric>
 # include <string>
-# include "ran2.h"
-# include "rlft3.h"
 # include <array>
+# include "HeaderFiles/ran2cpp.h"
+# include "HeaderFiles/rlft3.h"
 
 // Declaring seed to be a global variable. Trying to avoid declaring anything else as global
 int seed;
@@ -30,7 +30,7 @@ void pause_for_input() {
 int random_int(int min = 0, int max = 2)
 {
 
-    float rval = NR::ran2(seed);
+    double rval = NR::ran2(seed);
     int i = min + ((max - min) * rval);
     // std::cout << "Rval: " << rval << " Rnt: " << i << std::endl;
 
@@ -448,9 +448,9 @@ public:
 
             if (energy > -1) {
                 // std::cout << "\tline 326";
-                float probability = joltzman[energy];
+                double probability = joltzman[energy];
                 // std::cout << "\tline 328" << std::endl;
-                float chance = NR::ran2(seed);
+                double chance = NR::ran2(seed);
                 // std::cout << "Chance = " << chance << " Probability = " << probability << std::endl;
                 // std::cout << "probability = " << probability << std::endl;
 

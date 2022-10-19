@@ -6,11 +6,12 @@
 # include <fstream>
 # include <numeric>
 # include <string>
-# include "ran2.h"
 # include <array>
+# include <iomanip>
+# include "HeaderFiles/ran2cpp.h"
 
 // Declaring seed to be a global variable. Trying to avoid declaring anything else as global
-long seed;
+int seed;
 
 
 // Just pauses the script and waits for the user to press enter
@@ -20,6 +21,7 @@ void pause_for_input() {
     // Clears the buffer of any extra bits
     fflush(stdin);
     getchar();
+    fflush(stdin);
 
 }
 
@@ -29,7 +31,7 @@ void pause_for_input() {
 int random_int(int min = 0, int max = 2)
 {
 
-    float rval = ran2(&seed);
+    double rval = NR::ran2(seed);
     // if (print_rval){std::cout << "Rval: " << rval;}
     int i = min + ((max - min) * rval);
     // if (print_rval){std::cout << " Rnt: " << i << " Seed : " << seed << std::endl;}
@@ -136,6 +138,10 @@ private:
     // Place spins on the lattice
     void init_lattice() {
 
+        double SaveE = E;
+        E = 0;
+        std::array<double, 4> dump;  // These will not be used, they are just to save data that is going to be dumped.
+
         N = R * C;
 
         // Generate lattice vector
@@ -165,6 +171,20 @@ private:
             } while(looking);
         }
 
+
+        init_joltzman();
+        init_eoltzman();
+        // print_boltzman();
+
+        std::cout << "Warming up lattice with E = 0 for 15,000 sweeps" << std::endl;
+        for (int s = 0; s < 15000; s++) {dump = sweep();}
+
+        std::cout << "Warming up lattice with E = " << SaveE << " for 15,000 sweeps" << std::endl;
+        eoltzman.clear();
+        E = SaveE;
+        init_eoltzman();
+        // print_boltzman();
+        for (int s = 0; s < 15000; s++) {dump = sweep();}
     }
 
 
@@ -317,7 +337,10 @@ public:
 
 
 
-    void sweep(int s) {
+    std::array<double, 4> sweep() {
+        std::array<double, 4> measurements;
+        double Nplus = 0, Nminus = 0, current, exchanges;
+
         for (int n = 1; n < N + 1; n++) {
             int rran, cran, rrap, crap, dir, q;
             int energy, field_energy;
@@ -341,10 +364,10 @@ public:
                 else if (dir == 3) {q = -1;}
                 else {q = 0;}  // Applies the field if it's going up or down, giving it a prefered direction.
 
-                field_energy = E * q;
+                field_energy = q;
 
-                float probability = joltzman[energy] * eoltzman[field_energy];
-                float chance = ran2(&seed);
+                double probability = joltzman[energy] * eoltzman[field_energy];
+                double chance = NR::ran2(seed);
 
                 if (probability >= chance) {
                     exchange_one = lattice[rran][cran];
@@ -353,9 +376,20 @@ public:
                     lattice[rran][cran] = exchange_two;
                     lattice[rrap][crap] = exchange_one;
 
+                    if (dir == 1) {Nplus += 1;}
+                    else if (dir == 3) {Nminus += 1;}
+
                 }
             }
         }
+
+        current = (1/N)* (Nplus - Nminus);
+        exchanges = (1/N)* (Nplus + Nminus);
+
+        measurements = {current, exchanges, Nplus, Nminus};
+
+        return measurements;
+
     }
 
 
@@ -372,17 +406,9 @@ public:
         Pplus();
 
         init_lattice();
-        init_joltzman();
-        init_eoltzman();
-
-        // lattice = init_lattice(); // places things on lattice
         // init_joltzman();
-        // init_holtzman();
+        // init_eoltzman();
 
-        // Mag = init_magnitization();
-        // mag = Mag / (get_total_spins());
-        // Energy = init_energy();
-        // energy = Energy / (get_total_spins());
 
     };
 
@@ -395,6 +421,9 @@ int main() {
     int Rows, Columns, max_sweeps, print_first_lattice, print_final_lattice;
     double Temp, Coupeling, Efield;
     float Density;
+    std::array<double, 2> measurements;
+
+    // std::cout.precision(17);
 
     std::cout << "Input Seed\nSeed must not be 0\nInput Seed: ";
     std::cin >> seed;
@@ -450,16 +479,20 @@ int main() {
     std::cin >> print_final_lattice;
     fflush(stdin);
 
-    std::cout << "Ready to begin simulation\nNote: this does NOT include a warm up phase" << std::endl;
+    // std::cout << "Ready to begin simulation\nNote: this does NOT include a warm up phase" << std::endl;
+    std::cout << "Ready to begin simulation" << std::endl;
     pause_for_input();
     // std::cout << std::endl;
 
     for (int s = 1; s < max_sweeps + 1; s++) {
-        motorcycle.sweep(s);
+        std::array<double, 4> local_measurement;
+        local_measurement = motorcycle.sweep();
         // std::cout << "Finished sweep " << s << std::endl;
 
         if ((s % 100000) == 0) {
             std::cout << "Completed Sweep " << s << std::endl;
+            // std::cout << "Measured Current = " << std::setprecision(5) << local_measurement[0] << " Exchanges = " << local_measurement[1] << " N+ = " << local_measurement[2] << " N- = " << local_measurement[3] << std::endl;
+            // std::cout << "Measured Current = " << typeid(local_measurement[0]).name() << " Exchanges = " << typeid(local_measurement[1]).name() << " N+ = " << typeid(local_measurement[2]).name() << " N- = " << typeid(local_measurement[3]).name() << std::endl;
         }
 
 
