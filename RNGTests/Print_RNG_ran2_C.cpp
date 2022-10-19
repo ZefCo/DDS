@@ -1,7 +1,7 @@
 #include <iostream>
-#include "..\HeaderFiles\ran2c.h"
 #include <stdio.h>
 #include <typeinfo>
+#include "../HeaderFiles/ran2c.h"
 
 long seed;
 
