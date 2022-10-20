@@ -8,7 +8,10 @@
 # include <string>
 # include <array>
 # include <iomanip>
+# include <filesystem>
 # include "HeaderFiles/ran2cpp.h"
+
+namespace fs = std::filesystem;
 
 // Declaring seed to be a global variable. Trying to avoid declaring anything else as global
 int seed;
@@ -51,32 +54,6 @@ int random_spin()
     return spin;
 
 }
-
-
-struct POnes
-{
-
-};
-
-
-struct PZeros 
-{
-
-};
-
-
-// Holds the position of particle
-struct XY
-{
-    int x = random_int(0, 2);
-    int y = random_int();
-
-    operator int();
-};
-// XY::operator int()
-// {
-//     return spin;
-// }
 
 
 // Class for storing the Lattice
@@ -347,9 +324,11 @@ public:
             int exchange_one, exchange_two;
             bool print_rval = false;
 
+            // std::cout << "\tline 317";
             rran = random_int(0, R); 
             cran = random_int(0, C); // gets a random position
 
+            // std::cout << "\tline 321";
             dir = random_int(1, 5); // returns a number between 1 and 4
 
             std::array<int, 2> prime_position = nearest_neighbor(rran, cran, dir);
@@ -383,13 +362,28 @@ public:
             }
         }
 
-        current = (1/N)* (Nplus - Nminus);
-        exchanges = (1/N)* (Nplus + Nminus);
+        current = (1/(double)N)* (Nplus - Nminus);
+        exchanges = (1/(double)N)* (Nplus + Nminus);
 
         measurements = {current, exchanges, Nplus, Nminus};
 
         return measurements;
 
+    }
+
+    void write_lattice(fs::path write_path) {
+
+        ofstream myfile (write_path);
+        if (myfile.is_open()) {
+            for (int r = 0; r < R; r++) {
+                for (int c = 0; c < C; c++) {
+                    if (lattice[r][c] == 1) {myfile << "@" << " ";}
+                    else {myfile << " " << " ";}
+                }
+                myfile << std::endl;
+            }
+            myfile.close();
+        }
     }
 
 
@@ -415,21 +409,38 @@ public:
 };
 
 
+void check_folder(fs::path file_path) {
+    if (fs::exists(file_path)) {std::cout << file_path << " Already exists" << std::endl;}
+    else {fs::create_directory(file_path); std::cout << file_path << " Created" << std::endl;}
+}
+
+
 
 int main() {
     // long seed;
-    int Rows, Columns, max_sweeps, print_first_lattice, print_final_lattice;
+    int Rows, Columns, max_sweeps, print_first_lattice, print_final_lattice, init_seed;
     double Temp, Coupeling, Efield;
     float Density;
-    std::array<double, 2> measurements;
+    std::array<double, 4> measurements;
+
+    fs::path output_folder, lattice_folder;
+    std::string folder_name;
+    
+    lattice_folder = fs::current_path() / "LatticeImages";
+
+    check_folder(lattice_folder);   
+
+    std::vector<std::array<double, 4>> measurement_folder;
 
     // std::cout.precision(17);
 
     std::cout << "Input Seed\nSeed must not be 0\nInput Seed: ";
-    std::cin >> seed;
+    std::cin >> init_seed;
     fflush(stdin);
 
-    if (seed > 0) {seed = -1 * seed;}
+    if (init_seed > 0) {init_seed = -1 * init_seed;}
+
+    seed = init_seed;
 
     std::cout << "Input lattice rows: ";
     std::cin >> Rows;
@@ -479,6 +490,12 @@ int main() {
     std::cin >> print_final_lattice;
     fflush(stdin);
 
+    folder_name = "Seed_" + std::to_string(init_seed) + "_LatticeSize_" + std::to_string(Rows) + "x" + std::to_string(Columns) + "_Temp_" + std::to_string(Temp) + "_E_" + std::to_string(Efield);
+
+    output_folder = lattice_folder / folder_name;
+
+    check_folder(output_folder);
+    
     // std::cout << "Ready to begin simulation\nNote: this does NOT include a warm up phase" << std::endl;
     std::cout << "Ready to begin simulation" << std::endl;
     pause_for_input();
@@ -493,6 +510,15 @@ int main() {
             std::cout << "Completed Sweep " << s << std::endl;
             // std::cout << "Measured Current = " << std::setprecision(5) << local_measurement[0] << " Exchanges = " << local_measurement[1] << " N+ = " << local_measurement[2] << " N- = " << local_measurement[3] << std::endl;
             // std::cout << "Measured Current = " << typeid(local_measurement[0]).name() << " Exchanges = " << typeid(local_measurement[1]).name() << " N+ = " << typeid(local_measurement[2]).name() << " N- = " << typeid(local_measurement[3]).name() << std::endl;
+
+            // measurement_folder.push_back({local_measurement[0], local_measurement[1], local_measurement[2], local_measurement[3]});
+
+            // print lattice to file
+            // 
+            fs::path filename = std::to_string(s) + "_Current_" + std::to_string(local_measurement[0]) + "_Exchanges_" + std::to_string(local_measurement[1]) + "_Nplus_" + std::to_string(local_measurement[2]) + "_Nminus_" + std::to_string(local_measurement[3]) + ".txt";
+            filename = output_folder / filename;
+            motorcycle.write_lattice(filename);
+
         }
 
 
@@ -504,6 +530,11 @@ int main() {
     }
 
     motorcycle.get_density();
+
+
+    // for (auto item: measurement_folder) {
+    //     std::cout << item[0] << "\t" << item[1] << "\t" << item[2] << "\t" << item[3] << std::endl;
+    // }
 
 
 }

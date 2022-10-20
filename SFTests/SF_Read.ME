@@ -17,3 +17,17 @@ I take the FFT of the lattice at various times each sweep. Then I take that FFT 
 https://github.com/jdupuy/dj_fft
 
 Maybe?
+
+
+Here's the idea:
+
+1) Take DFT/FFT of each row and column of the lattice at the end of each MCS
+    s(k) = s(kx) + s(ky)
+
+2) average these every MCS
+    S(k) = (1/R)Sum(s(kx i)) + (1/C)Sum(s(ky i))
+
+3) output this as the measurement every MCS
+    (t, S(k))
+
+4) average these over so many MCS (~25,000)
