@@ -1,3 +1,7 @@
 *.out
 *.exe
 *.cc
+LatticeImages/
+TempImages/
+CleanUP/
+*.gif
