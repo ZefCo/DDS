@@ -43,19 +43,6 @@ int random_int(int min = 0, int max = 2)
 
 
 
-// Gets a random int between 0 and 2 (remember it's [0, 1) ) and then turns the 0 into -1
-int random_spin() 
-{
-    int spin;
-    spin = random_int();
-    if (spin == 0) { spin = -1; }
-    // std::cout << "Spin: " << spin << std::endl;
-
-    return spin;
-
-}
-
-
 // Class for storing the Lattice
 class KawasakiLattice
 {
@@ -106,7 +93,7 @@ private:
     // sadly, this is not a dune reference
     void init_eoltzman() {
         for (int i = -1; i <=1; i++ ) {
-            eoltzman[i] = exp((E * i) / T);
+            eoltzman[i] = exp((-E * i) / T);
         }
 
     }
@@ -322,7 +309,6 @@ public:
             int rran, cran, rrap, crap, dir, q;
             int energy, field_energy;
             int exchange_one, exchange_two;
-            bool print_rval = false;
 
             // std::cout << "\tline 317";
             rran = random_int(0, R); 
@@ -403,10 +389,10 @@ public:
         // init_joltzman();
         // init_eoltzman();
 
-
     };
 
 };
+
 
 
 void check_folder(fs::path file_path) {
@@ -417,7 +403,6 @@ void check_folder(fs::path file_path) {
 
 
 int main() {
-    // long seed;
     int Rows, Columns, max_sweeps, print_first_lattice, print_final_lattice, init_seed;
     double Temp, Coupeling, Efield;
     float Density;
@@ -439,7 +424,6 @@ int main() {
     fflush(stdin);
 
     if (init_seed > 0) {init_seed = -1 * init_seed;}
-
     seed = init_seed;
 
     std::cout << "Input lattice rows: ";
@@ -491,9 +475,7 @@ int main() {
     fflush(stdin);
 
     folder_name = "Seed_" + std::to_string(init_seed) + "_LatticeSize_" + std::to_string(Rows) + "x" + std::to_string(Columns) + "_Temp_" + std::to_string(Temp) + "_E_" + std::to_string(Efield);
-
     output_folder = lattice_folder / folder_name;
-
     check_folder(output_folder);
     
     // std::cout << "Ready to begin simulation\nNote: this does NOT include a warm up phase" << std::endl;
