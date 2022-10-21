@@ -184,6 +184,8 @@ private:
         if (PO.length != osafety) {PO.length = osafety;} // Makes sure that everything actually did what it's supposed to do.
         if (PZ.length != zsafety) {PZ.length = zsafety;} // Well there are better ways to do it then this
 
+        print_lattice();
+
         init_joltzman();
         init_eoltzman();
         // print_boltzman();

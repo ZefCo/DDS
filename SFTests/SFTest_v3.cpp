@@ -2,10 +2,10 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
-#include "../HeaderFiles/dj_fft.h"
+// #include "../HeaderFiles/dj_fft.h"
 // #include "../HeaderFiles/nr.h"
 // #include "../HeaderFiles/rlft3.h"
-// #include <fftw3.h>
+#include <fftw3.h>
 // #include "fourn.h"
 // #include "../HeaderFiles/fourn.h"
 
@@ -31,6 +31,9 @@ int main() {
     std::vector<std::vector<int>> fuckNRin;
     std::vector<std::vector<int>> fuckNRout;
 
+    fftw_complex *in, *out;
+    fftw_plan p;
+
     
     fuckNRin.resize(R);
     for (int r = 0; r < R; r++) {
@@ -47,6 +50,8 @@ int main() {
         }
     }
 
+    // in = (fftw_complex*) 
+
     std::cout << "\nPrinting Lattice\n" << std::endl;
     
     for (int r = 0; r < R; r++) {
@@ -58,20 +63,21 @@ int main() {
     }
 
     for (int r = 0; r < R; r++) {
-        std::vector<std::complex<float>> copyRow(fuckNRin[r].begin(), fuckNRin[r].end());
+        std::vector<double> copyRow(fuckNRin[r].begin(), fuckNRin[r].end());
 
         std::cout << "Row: " << r << std::endl;
         for (auto item: copyRow) {std::cout << item << " ";}
         std::cout << std::endl;
 
-        auto fftData = dj::fft1d_gpu(copyRow, df::fft_dir::DIR_FWD);
+        // auto fftData = dj::fft1d_gpu(copyRow, df::fft_dir::DIR_FWD);
+        // fftData 
         std::cout << "FFT of Row" << std::endl;
         for (auto item: fftData) {std::cout << item << " ";}
         std::cout << std::endl;
     }
 
     for (int c = 0; c < C; c++) {
-        std::vector<std::complex<float>> copyCol;
+        std::vector<double> copyCol;
         for (int r = 0; r < R; r++) {
             copyCol.push_back(fuckNRin[r][c]);
         }
@@ -80,7 +86,7 @@ int main() {
         for (auto item: copyCol) {std::cout << item << " ";}
         std::cout << std::endl;
 
-        auto fftData = dj::fft1d_gpu(copyCol, df::fft_dir::DIR_FWD);
+        // auto fftData = dj::fft1d_gpu(copyCol, df::fft_dir::DIR_FWD);
         std::cout << "FFT of Row" << std::endl;
         for (auto item: fftData) {std::cout << item << " ";}
         std::cout << std::endl;
