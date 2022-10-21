@@ -9,6 +9,7 @@
 # include <array>
 # include <iomanip>
 # include <filesystem>
+# include <fftw3.h>
 # include "HeaderFiles/ran2cpp.h"
 
 namespace fs = std::filesystem;
@@ -297,6 +298,21 @@ public:
         }
 
         std::cout << "\n";
+    }
+
+
+    void structure_factor() {
+        fftw_complex *in, *out;
+        fftw_plan p;
+
+        in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * C);
+        out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * C);
+
+        p = fftw_plan_dft_1d(C, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+
+        fftw_execute(p);
+        fftw_destroy_plan(p);
+
     }
 
 
