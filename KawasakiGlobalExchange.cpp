@@ -7,8 +7,14 @@
 # include <numeric>
 # include <string>
 # include <array>
+# include <iomanip>
+# include <filesystem>
 # include "HeaderFiles/ran2cpp.h"
-# include "HeaderFiles/rlft3.h"
+
+namespace fs = std::filesystem;
+
+
+// So while fun to code, this doesn't work for a DDS system
 
 // Declaring seed to be a global variable. Trying to avoid declaring anything else as global
 int seed;
@@ -21,6 +27,7 @@ void pause_for_input() {
     // Clears the buffer of any extra bits
     fflush(stdin);
     getchar();
+    fflush(stdin);
 
 }
 
@@ -36,36 +43,6 @@ int random_int(int min = 0, int max = 2)
 
     return i;
 }
-
-
-
-// Gets a random int between 0 and 2 (remember it's [0, 1) ) and then turns the 0 into -1
-int random_spin() 
-{
-    int spin;
-    spin = random_int();
-    if (spin == 0) { spin = -1; }
-    // std::cout << "Spin: " << spin << std::endl;
-
-    return spin;
-
-}
-
-
-
-
-// Holds the position of particle
-struct XY
-{
-    int x = random_int(0, 2);
-    int y = random_int();
-
-    operator int();
-};
-// XY::operator int()
-// {
-//     return spin;
-// }
 
 
 // Class for storing the Lattice
@@ -139,7 +116,7 @@ private:
     // Initialize the arrays that hold the Boltzman values
     // sadly, this is not a dune reference
     void init_eoltzman() {
-        for (int i = 0; i <=1; i++ ) {
+        for (int i = -1; i <=1; i++ ) {
             eoltzman[i] = exp((-E * i) / T);
         }
 
@@ -148,6 +125,11 @@ private:
 
     // Place spins on the lattice
     void init_lattice() {
+
+        double SaveE = E;
+        E = 0;
+        std::array<int, 2> dump;  // These will not be used, they are just to save data that is going to be dumped.
+
 
         N = R * C;
 
@@ -185,9 +167,7 @@ private:
                 int j = random_int(0, C);
                 int local_site = lattice[i][j]; // get the value at that position
                 if (local_site == 0) {lattice[i][j] = 1; looking = false;} // if it's 0, make it 1, else keep looking
-            } while(looking);
-
-            
+            } while(looking);            
         }
 
         // Locate holes and gas, index them in the Structs
@@ -204,18 +184,23 @@ private:
         if (PO.length != osafety) {PO.length = osafety;} // Makes sure that everything actually did what it's supposed to do.
         if (PZ.length != zsafety) {PZ.length = zsafety;} // Well there are better ways to do it then this
 
+        init_joltzman();
+        init_eoltzman();
+        // print_boltzman();
+
+
+        std::cout << "Warming up lattice with E = 0 for 15,000 sweeps" << std::endl;
+        for (int s = 0; s < 15000; s++) {dump = sweep();}
+
+        std::cout << "Warming up lattice with E = " << SaveE << " for 15,000 sweeps" << std::endl;
+        eoltzman.clear();
+        E = SaveE;
+        init_eoltzman();
+        // print_boltzman();
+        for (int s = 0; s < 15000; s++) {dump = sweep();}
+
     }
 
-
-    // // Density of +
-    // void Pplus() {
-    //     int sites = R * C;
-
-    //     float localP = p * (float)sites;
-    //     P = (int)localP;
-
-    //     // return psites;
-    // }
 
 
     // Finds the nearest neighbor to the randomly selected particle
@@ -262,19 +247,16 @@ public:
 
         // std::cout << lattice[row][col] << std::endl;//"\t" << lattice[prime_position[0]][prime_position[1]] << std::endl;
 
-        if (lattice[row][col] != lattice[rop][cop]) {
-            std::array<int, 4> local_neighbors = nearest_neighbors(row, col);
-            std::array<int, 4> prime_neighbors = nearest_neighbors(rop, cop);
+        std::array<int, 4> local_neighbors = nearest_neighbors(row, col);
+        std::array<int, 4> prime_neighbors = nearest_neighbors(rop, cop);
 
-            int rowd = local_neighbors[0]; int colr = local_neighbors[1]; int rowu = local_neighbors[2]; int coll = local_neighbors[3];
-            int ropd = prime_neighbors[0]; int copr = local_neighbors[1]; int ropu = local_neighbors[2]; int copl = local_neighbors[3];
+        int rowd = local_neighbors[0]; int colr = local_neighbors[1]; int rowu = local_neighbors[2]; int coll = local_neighbors[3];
+        int ropd = prime_neighbors[0]; int copr = local_neighbors[1]; int ropu = local_neighbors[2]; int copl = local_neighbors[3];
 
-            local_energy = (lattice[rowd][col] + lattice[row][colr] + lattice[rowu][col] + lattice[row][coll]) * lattice[row][col]; 
-            prime_energy = (lattice[ropd][cop] + lattice[rop][copr] + lattice[ropu][cop] + lattice[rop][copl]) * lattice[rop][cop]; 
+        local_energy = (lattice[rowd][col] + lattice[row][colr] + lattice[rowu][col] + lattice[row][coll]) * lattice[row][col]; 
+        prime_energy = (lattice[ropd][cop] + lattice[rop][copr] + lattice[ropu][cop] + lattice[rop][copl]) * lattice[rop][cop]; 
 
-            return_energy = local_energy + prime_energy;
-        }
-        else {return_energy = -1;}
+        return_energy = local_energy + prime_energy;
 
         return return_energy;
 
@@ -303,7 +285,17 @@ public:
 
     // In case I need the total spins
     void get_density() {
-        std::cout << "Density ones is:\tp = " << p << "\tP = " << PO.length << std::endl;
+        std::cout << "Soft Density is:\tp = " << p << "\tP = " << PO.length << std::endl;
+        
+        int hard_count = 0;
+
+        for (int r = 0; r < R; r++){
+            for (int c = 0; c < C; c++) {
+                if (lattice[r][c] == 1) {hard_count += 1;}
+            }
+        }
+
+        std::cout << "The hard count of 1s is " << hard_count << std::endl;
     }
 
     int get_R() {
@@ -338,7 +330,7 @@ public:
         for (int i = 0; i < R; i++){
             for (int j = 0; j < C; j++){
                 // std::cout << lattice[i][j] << "\t";
-                if (lattice[i][j] == 1) { std::cout << "1" << " "; }
+                if (lattice[i][j] == 1) { std::cout << "@" << " "; }
                 else if (lattice[i][j] == 0) { std::cout << " " << " "; } 
             }
             std::cout << "\n";
@@ -397,92 +389,71 @@ public:
                 }
             }
         }
-
-
-        // std::cout << "Ones Elements" << std::endl;
-        // for (int index = 0; index <= PO.length; index++) {
-        //     std::cout << "( " << element[0] << ", " << element[1] << " )" << std::endl;
-        // }
-
-        // std::cout << "Zeroes Elements" << std::endl;
-        // for (std::array element: PZ.zindex) {
-        //     std::cout << "( " << element[0] << ", " << element[1] << " )" << std::endl;
-        // }
     }
 
 
-    // // Not sure how this is going to work yet... but we're going to look at the structure function
-    // void structure() {
+    std::array<int, 2> sweep() {
+        std::array<int, 2> measurements;
+        int moves = 0, Nplus = 0, Nminus = 0;
 
-    //     std::vector<std::vector<int>> copy = lattice; // Copies the lattice, so we don't end up screwing anything up
-
-    // NR::rlft3(copy, )
-
-    // }
-
-
-
-    void sweep() {
-        // std::cout << "\nline 309";
-        int moves = 0;
         for (int n = 1; n < N + 1; n++) {
-            // std::cout << "\tline 312";
-            int oran, zran, energy;
+            int oran, zran, q, delta_y;
+            int energy, field_energy;
             std::array<int, 2> one_position, zero_position;
-            // std::array<int, 2> exchange_one, exchange_zero;
+            int exchange_one, exchange_two;
 
-            // std::cout << "\tline 317";
             oran = random_int(0, PO.length); 
             zran = random_int(0, PZ.length); // gets a random position
 
-            // std::cout << "\tline 321";
-            // dir = random_int(1, 5); // returns a number between 1 and 4
-
             one_position = PO.oindex[oran]; zero_position = PZ.zindex[zran];
 
-            // std::array<int, 2> prime_position = nearest_neighbor(rran, cran, dir);
-            // rrap = prime_position[0]; crap = prime_position[1];
-
-            // nearest_neighbor
             energy = delta_energy(one_position[0], one_position[1], zero_position[0], zero_position[1]);
 
-            if (energy > -1) {
-                // std::cout << "\tline 326";
-                double probability = joltzman[energy];
-                // std::cout << "\tline 328" << std::endl;
-                double chance = NR::ran2(seed);
-                // std::cout << "Chance = " << chance << " Probability = " << probability << std::endl;
-                // std::cout << "probability = " << probability << std::endl;
+            delta_y = one_position[1] - zero_position[1];
 
-                if (probability >= chance) {
-                    PO.oindex[oran] = zero_position; PZ.zindex[zran] = one_position;
-                    lattice[one_position[0]][one_position[1]] = 0;
-                    lattice[zero_position[0]][zero_position[1]] = 1;
-                    // std::cout << "Exchanging positions" << std::endl;
-                    // std::cout << "Rran = " << rran << " Cran = " << cran << " Rran' = " << rrap << " Cran' = " << crap << std::endl;
-                    // exchange_one = lattice[rran][cran];
-                    // exchange_zero = lattice[rrap][crap];
+            if (delta_y > 0) {q = -1;}
+            else if (delta_y < 0) {q = 1;}
+            else {q = 0;}
 
-                    // std::cout << exchange_one << "\t" << exchange_two << std::endl;
-                    
-                    // std::cout << "The actual exchange" << std::endl;
-                    // lattice[rran][cran] = exchange_two;
-                    // lattice[rrap][crap] = exchange_one;
+            double probability = joltzman[energy] * eoltzman[q];
+            double chance = NR::ran2(seed);
 
-                    moves += 1;
+            if (probability >= chance) {
 
-                }
+                PO.oindex[oran] = zero_position; PZ.zindex[zran] = one_position;
+
+                lattice[one_position[0]][one_position[1]] = 0;
+                lattice[zero_position[0]][zero_position[1]] = 1;
+
+                moves += 1;
+                if (q == 1) {Nplus += 1;}
+                else if (q = -1) {Nminus += 1;}
+
             }
-
-            // std::cout << n << std::endl;
-            // print_lattice();
-            // std::cout << "Total Moves made: " << moves << std::endl;
-
         }
 
-        // std::cout << "Total Moves made: " << moves << std::endl;
+        measurements = {Nplus, Nminus};
+
+        return measurements;
 
     }
+
+
+    void write_lattice(fs::path write_path) {
+
+        ofstream myfile (write_path);
+        if (myfile.is_open()) {
+            for (int r = 0; r < R; r++) {
+                for (int c = 0; c < C; c++) {
+                    if (lattice[r][c] == 1) {myfile << "@" << " ";}
+                    else {myfile << " " << " ";}
+                }
+                myfile << std::endl;
+            }
+            myfile.close();
+        }
+    }
+
 
 
     // Constructor
@@ -498,17 +469,6 @@ public:
         // Pplus();
 
         init_lattice();
-        init_joltzman();
-        init_eoltzman();
-
-        // lattice = init_lattice(); // places things on lattice
-        // init_joltzman();
-        // init_holtzman();
-
-        // Mag = init_magnitization();
-        // mag = Mag / (get_total_spins());
-        // Energy = init_energy();
-        // energy = Energy / (get_total_spins());
 
     };
 
@@ -516,17 +476,34 @@ public:
 
 
 
+void check_folder(fs::path file_path) {
+    if (fs::exists(file_path)) {std::cout << file_path << " Already exists" << std::endl;}
+    else {fs::create_directory(file_path); std::cout << file_path << " Created" << std::endl;}
+}
+
+
+
 int main() {
-    // long seed;
-    int Rows, Columns, max_sweeps, print_first_lattice, print_final_lattice, print_position_index;
+    int Rows, Columns, max_sweeps, print_first_lattice, print_final_lattice, print_position_index, init_seed;
     double Temp, Coupeling, Efield;
     float Density;
+    std::array<double, 4> measurements;
+
+    fs::path output_folder, lattice_folder;
+    std::string folder_name;
+
+    lattice_folder = fs::current_path() / "LatticeImages";
+
+    check_folder(lattice_folder);   
+
+    std::vector<std::array<double, 4>> measurement_folder;
 
     std::cout << "Input Seed\nSeed must not be 0\nInput Seed: ";
-    std::cin >> seed;
+    std::cin >> init_seed;
     fflush(stdin);
 
-    if (seed > 0) {seed = -1 * seed;}
+    if (init_seed > 0) {init_seed = -1 * init_seed;}
+    seed = init_seed;
 
     std::cout << "Input lattice rows: ";
     std::cin >> Rows;
@@ -540,10 +517,10 @@ int main() {
     std::cin >> Temp;
     fflush(stdin);
 
-    // std::cout << "Input External E Field: ";
-    // std::cin >> Efield;
-    // fflush(stdin);
-    std::cout << "External E Field set to 0 for now" << std::endl;
+    std::cout << "Input External E Field: ";
+    std::cin >> Efield;
+    fflush(stdin);
+    // std::cout << "External E Field set to 0 for now" << std::endl;
     
 
     std::cout << "Coupeling Constant set to 1, Kb" << std::endl;
@@ -567,7 +544,7 @@ int main() {
     std::cin >> print_position_index;
     fflush(stdin);
 
-    if (print_position_index) {
+    if (print_position_index == 1) {
         motorcycle.print_index();
     }
 
@@ -584,18 +561,27 @@ int main() {
     std::cin >> print_final_lattice;
     fflush(stdin);
 
-    std::cout << "Ready to begin simulation\nNote: this does NOT include a warm up phase" << std::endl;
+    folder_name = "Seed_" + std::to_string(init_seed) + "_LatticeSize_" + std::to_string(Rows) + "x" + std::to_string(Columns) + "_Temp_" + std::to_string(Temp) + "_E_" + std::to_string(Efield);
+    output_folder = lattice_folder / folder_name;
+    check_folder(output_folder);
+
+    // std::cout << "Ready to begin simulation\nNote: this does NOT include a warm up phase" << std::endl;
+    std::cout << "Ready to begin simulation" << std::endl;
     pause_for_input();
     // std::cout << std::endl;
 
     for (int s = 1; s < max_sweeps + 1; s++) {
-        motorcycle.sweep();
+        std::array<int, 2> local_measurement;
+        local_measurement = motorcycle.sweep();
         // std::cout << "Finished sweep " << s << std::endl;
         if ((s % 100000) == 0) {
             std::cout << "Completed Sweep " << s << std::endl;
+
+            fs::path filename = std::to_string(s) + ".txt";
+            filename = output_folder / filename;
+            motorcycle.write_lattice(filename);
+
         }
-
-
     }
 
     if (print_final_lattice == 1) {
@@ -603,5 +589,6 @@ int main() {
         motorcycle.print_lattice();
     }
 
+    motorcycle.get_density();
 
 }
