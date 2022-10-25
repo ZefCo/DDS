@@ -12,13 +12,17 @@
 # include <fftw3.h>
 # include "HeaderFiles/ran2cpp.h"
 
+#define REAL 0
+#define IMAG 1
+
+// compile with this line!
+// g++ DDW_v2.cpp -lfftw3 -lm
+
 namespace fs = std::filesystem;
-// There is a possible charge bug in this one. Use v2
 
 // Declaring seed to be a global variable. Trying to avoid declaring anything else as global
 int seed;
 int const total_measures = 4;
-
 
 
 // Just pauses the script and waits for the user to press enter
@@ -75,14 +79,24 @@ private:
     // The lattice
     std::vector<std::vector<int>> lattice;
 
-    // Energy
-    int energy;
+    // Memory allocation for FFT  and FFT in/out & plan
+    fftw_complex *in2D, *out2D;
+    fftw_plan plan;
 
 
     // Boltzman Energy. jolt ties to J, holt ties to h
     // Saving these as Maps, with their key as the DE and values as the actual exp
     std::map<int, double> joltzman;
     std::map<int, double> eoltzman;
+
+    // Initialize the arrays that hold the Boltzman values
+    // sadly, this is not a dune reference
+    void init_eoltzman() {
+        for (int i = -1; i <=1; i++ ) {
+            eoltzman[i] = exp((E * i) / T);
+        }
+
+    }
 
     // Initialize the arrays that hold the Boltzman values
     // joltzman for J Boltzman
@@ -93,13 +107,12 @@ private:
 
     }
 
-    // Initialize the arrays that hold the Boltzman values
-    // sadly, this is not a dune reference
-    void init_eoltzman() {
-        for (int i = -1; i <=1; i++ ) {
-            eoltzman[i] = exp((-E * i) / T);
-        }
 
+    void init_fftw() {
+        in2D = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+        out2D = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+
+        plan = fftw_plan_dft_2d(R, C, in2D, out2D, FFTW_FORWARD, FFTW_ESTIMATE);
     }
 
 
@@ -203,6 +216,27 @@ private:
     }
 
 
+    // made this a seperate function to make it easier to read
+    int set_charge(int sk, int skp, int dir) {
+        int q;
+
+        if (dir == 1) // if the direction is going down (increasing Row #), it's going with the field
+        {
+            if (sk == 1) {q = 1;} // if it's 1 then it's a + charge
+            else {q = -1;} // else it's a - charge
+        }
+        else if (dir == 3) // if the direction is going up (decreasing Row #), it's going against the field
+        {
+            if (sk == 1) {q = -1;} // if it's a 1 then it's a + charge
+            else {q = 1;} // else it's a - charge
+        }
+        else {q = 0;}  // Else it's going perpendicular to the field and therefore we don't care.
+
+        return q;
+
+    }
+
+
 public:
 
     int delta_energy(int row, int col, int rop, int cop) {
@@ -227,6 +261,44 @@ public:
     }
 
 
+    // The road to hell is paved in minus signs
+    // assumes the move has been accepted
+    int get_current(int sk, int dir) {
+        int current_dir = 0;
+
+        if (sk == 1) 
+        {
+            if (dir == 1) {current_dir = 1;}
+            else if (dir == 3) {current_dir = -1;}
+        }
+        else if (sk == 0)
+        {
+            if (dir == 1) {current_dir = -1;}
+            else if (dir == 3) {current_dir = 1;}
+        }
+
+        return current_dir;
+
+    }
+
+
+    // In case I need the total spins
+    void get_density() {
+        std::cout << "Soft Density is:\tp = " << p << "\tP = " << P << std::endl;
+        
+        int hard_count = 0;
+
+        for (int r = 0; r < R; r++){
+            for (int c = 0; c < C; c++) {
+                if (lattice[r][c] == 1) {hard_count += 1;}
+            }
+        }
+
+        std::cout << "The hard count of 1s is " << hard_count << std::endl;
+    }
+
+
+
     // just outputs the current parameters
     void get_inputs() {
 
@@ -247,20 +319,6 @@ public:
     }
 
 
-    // In case I need the total spins
-    void get_density() {
-        std::cout << "Soft Density is:\tp = " << p << "\tP = " << P << std::endl;
-        
-        int hard_count = 0;
-
-        for (int r = 0; r < R; r++){
-            for (int c = 0; c < C; c++) {
-                if (lattice[r][c] == 1) {hard_count += 1;}
-            }
-        }
-
-        std::cout << "The hard count of 1s is " << hard_count << std::endl;
-    }
 
     int get_R() {
         return(R);
@@ -304,17 +362,26 @@ public:
     }
 
 
-    void structure_factor() {
-        fftw_complex *in, *out;
-        fftw_plan p;
+    // Assumes that the memory has already been allocated and that the plan has already been established
+    // IMPORTANT NOTE: the resulting 2D Spin Fluctuation lattice is actually a 1D vectory/array, and therefore
+    // must be indexed by i = c + Cr where C is the number of columns, c is the specific column, and r is the
+    // specific row. You will generally want i = C(R - 1) for k(1, 0) and i = C - 1 for k(0, 1)
+    std::array< double, 2> structure_factor() {
+        double k10, k01;
+        int index10 = C * (R - 1), index01 = C - 1;
 
-        in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * C);
-        out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * C);
+        for (int r = 0; r < R; r++) {
+            for (int c = 0; c < C; c++) {
+                in2D[c + (C * r)][REAL] = lattice[r][c];
+            }
+        }
 
-        p = fftw_plan_dft_1d(C, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+        fftw_execute(plan);
 
-        fftw_execute(p);
-        fftw_destroy_plan(p);
+        k10 = (out2D[index10][REAL] * out2D[index10][REAL]) + (out2D[index10][IMAG] * out2D[index10][IMAG]);
+        k01 = (out2D[index01][REAL] * out2D[index01][REAL]) + (out2D[index01][IMAG] * out2D[index01][IMAG]);
+
+        return {k10, k01};
 
     }
 
@@ -323,6 +390,7 @@ public:
     std::array<double, total_measures> sweep() {
         std::array<double, total_measures> measurements;
         double Nplus = 0, Nminus = 0, current, exchanges;
+        int sk, skp;  // S sub k and S sub k prime
 
         for (int n = 1; n < N + 1; n++) {
             int rran, cran, rrap, crap, dir, q;
@@ -339,14 +407,14 @@ public:
             std::array<int, 2> prime_position = nearest_neighbor(rran, cran, dir);
             rrap = prime_position[0]; crap = prime_position[1];  // gets the nearest neighbor in a direction
 
-            if (lattice[rran][cran] != lattice[rrap][crap]) {  // checks if those neighbors are different: if not then proceed
+            sk = lattice[rran][cran]; skp = lattice[rrap][crap];
+
+            if (sk != skp) {  // checks if those neighbors are different: if not then proceed
 
                 // nearest_neighbor
                 energy = delta_energy(rran, cran, rrap, crap); // Does not look at the Field
 
-                if (dir == 1) {q = -1;}
-                else if (dir == 3) {q = 1;}
-                else {q = 0;}  // Applies the field if it's going up or down, giving it a prefered direction.
+                q = set_charge(sk, skp, dir);
 
                 double probability = joltzman[energy] * eoltzman[q];
                 double chance = NR::ran2(seed);
@@ -358,8 +426,8 @@ public:
                     lattice[rran][cran] = exchange_two;
                     lattice[rrap][crap] = exchange_one;
 
-                    if (dir == 1) {Nplus += 1;} // current with field, charge against
-                    else if (dir == 3) {Nminus += 1;} // b/c Fuck Ben Franklin
+                    if (get_current(sk, dir) == 1) {Nplus += 1;} // current with field, charge against
+                    else if (get_current(sk, dir) == -1) {Nminus += 1;} // b/c Fuck Ben Franklin
 
                 }
             }
@@ -405,6 +473,7 @@ public:
         init_lattice();
         // init_joltzman();
         // init_eoltzman();
+        init_fftw();
 
     };
 
@@ -420,7 +489,7 @@ void check_folder(fs::path file_path) {
 
 
 // writes the Mag and mag to a csv file. Do not include the .csv portion of the filename, that will be added later
-void write_csv(fs::path directory, std::string master_filename, std::vector<double> Current, std::vector<double> Exchanges) { //, std::vector<float> Energy, std::vector<float> energy) {
+void write_csv(fs::path directory, std::string master_filename, std::vector<double> Current, std::vector<double> Exchanges, std::vector<double> k10, std::vector<double> k01) { //, std::vector<float> Energy, std::vector<float> energy) {
 
     int Lmod = 1000000;
     int L = Current.size(); // this really only works if Mag and mags are the same size, which they should be.
@@ -460,11 +529,11 @@ void write_csv(fs::path directory, std::string master_filename, std::vector<doub
             std::cout << "Start = " << start << " End = " << end << std::endl;
         }
 
-        fileout << "sweep,Current,Exchanges\n";//,E,e\n";
+        fileout << "sweep,Current,Exchanges,SFk10,SFk01\n";
         for (long i = start; i < end; i++) {
             long index = ((i + 1) / 1);
             // std::cout << "Index: " << index << " Current: " << Current.at(i) << " Exchanges: " << Exchanges.at(i) << std::endl;
-            fileout << index << "," << Current.at(i) << "," << Exchanges.at(i) << "\n"; //"," << Energy.at(i) << "," << energy.at(i) << "\n";
+            fileout << index << "," << Current.at(i) << "," << Exchanges.at(i) << k10.at(i) << k01.at(i) << "\n"; //"," << Energy.at(i) << "," << energy.at(i) << "\n";
         }
         start += Lmod;
 
@@ -480,9 +549,10 @@ int main() {
     int Rows, Columns, max_sweeps, print_first_lattice, print_final_lattice, init_seed;
     double Temp, Coupeling, Efield;
     float Density;
-    std::array<std::vector<double>, total_measures> measurements;
+    std::array<double, 2> sf;
+    std::array<std::vector<double>, total_measures + 2> measurements;
 
-    fs::path image_output, data_output, lattice_images, lattice_data;
+    fs::path image_output, data_output, lattice_images, lattice_data, image_filename ;
     std::string folder_name;
     
     lattice_images = fs::current_path() / "LatticeImages";
@@ -490,8 +560,6 @@ int main() {
 
     check_folder(lattice_images);
     check_folder(lattice_data);   
-
-    std::vector<std::array<double, 4>> measurement_folder;
 
     // std::cout.precision(17);
 
@@ -559,9 +627,11 @@ int main() {
     check_folder(data_output);
     
     // std::cout << "Ready to begin simulation\nNote: this does NOT include a warm up phase" << std::endl;
+    fflush(stdin);
     std::cout << "Ready to begin simulation" << std::endl;
     pause_for_input();
     // std::cout << std::endl;
+
 
     for (int s = 0; s < max_sweeps; s++) {
         std::array<double, 4> local_measurement;
@@ -569,6 +639,10 @@ int main() {
         // std::cout << "Finished sweep " << s << std::endl;
 
         for (int i = 0; i < total_measures; i++) {measurements[i].push_back(local_measurement[i]);}
+
+        sf = motorcycle.structure_factor();
+
+        measurements[total_measures].push_back(sf[0]); measurements[total_measures + 1].push_back(sf[1]);
 
         if ((s % 100000) == 0) {
             std::cout << "Completed Sweep " << s << std::endl;
@@ -579,9 +653,9 @@ int main() {
 
             // print lattice to file
             // 
-            fs::path filename = std::to_string(s) + "_Current_" + std::to_string(local_measurement[0]) + "_Exchanges_" + std::to_string(local_measurement[1]) + "_Nplus_" + std::to_string(local_measurement[2]) + "_Nminus_" + std::to_string(local_measurement[3]) + ".txt";
-            // filename = image_output / filename;
-            // motorcycle.write_lattice(filename);
+            image_filename = std::to_string(s) + "_Current_" + std::to_string(local_measurement[0]) + "_Exchanges_" + std::to_string(local_measurement[1]) + "_Nplus_" + std::to_string(local_measurement[2]) + "_Nminus_" + std::to_string(local_measurement[3]) + ".txt";
+            image_filename = image_output / image_filename;
+            motorcycle.write_lattice(image_filename);
 
         }
 
@@ -596,11 +670,8 @@ int main() {
     // motorcycle.get_density();
 
     std::string filename = "Temp_" + std::to_string(Temp) + "_Size_" + std::to_string(Rows) + "x" + std::to_string(Columns) + "_seed_" + std::to_string(init_seed) + "_sweeps_" + std::to_string(max_sweeps);
-    // filename = data_output.string() + "/" + filename;
 
-    // std::string filename {filename.u8string()};
-
-    write_csv(data_output, filename, measurements[0], measurements[1]);
+    write_csv(data_output, filename, measurements[0], measurements[1], measurements[total_measures], measurements[total_measures + 1]);
 
     // for (int i = 0; i < measurements[0].size(); i++) {
     //     std::cout << "Current: " << measurements[0][i] << std::endl;
