@@ -114,3 +114,5 @@ for png in png_files:
 
 
 frames[0].save("png2gif.gif", format="GIF", append_images=frames[1:], save_all = True, duration=300) 
+
+# delete temp image folder

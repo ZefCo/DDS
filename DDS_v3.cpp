@@ -11,6 +11,7 @@
 # include <filesystem>
 # include <fftw3.h>
 # include "HeaderFiles/ran2cpp.h"
+# include "HeaderFiles/Seeder.h"
 
 #define REAL 0
 #define IMAG 1
@@ -554,23 +555,18 @@ int main() {
     std::array<double, 2> sf;
     std::array<std::vector<double>, total_measures + 2> measurements;
 
-    fs::path image_output, data_output, lattice_images, lattice_data, image_filename ;
+    fs::path image_output, data_output, lattice_data;
     std::string folder_name;
     
-    lattice_images = fs::current_path() / "LatticeImages";
     lattice_data = fs::current_path() / "Data";
 
-    check_folder(lattice_images);
     check_folder(lattice_data);   
 
-    // std::cout.precision(17);
-
-    std::cout << "Input Seed\nSeed must not be 0\nInput Seed: ";
-    std::cin >> init_seed;
-    fflush(stdin);
+    init_seed = gen_seed();
 
     seed = init_seed;
     if (seed > 0) {seed = -1 * seed;}
+    std::cout << "Generated seed: " << seed << std::endl;
 
     std::cout << "Input lattice rows: ";
     std::cin >> Rows;
@@ -587,15 +583,12 @@ int main() {
     std::cout << "Input External E Field: ";
     std::cin >> Efield;
     fflush(stdin);
-    // std::cout << "External E Field set to 0 for now" << std::endl;
-    
 
     std::cout << "Coupeling Constant set to 1, Kb" << std::endl;
     fflush(stdin);
 
-    std::cout << "Choose a density for p+\nNumber must be between 0 and 1 (will round down, recomend 0.5): ";
-    std::cin >> Density;
-    fflush(stdin);
+    std::cout << "Setting partical desntiy to be 0.5" << std::endl;
+    Density = 0.5;
 
     KawasakiLattice motorcycle(Rows, Columns, Temp, 1.0, Efield, Density);
     motorcycle.get_density();
@@ -603,10 +596,10 @@ int main() {
     std::cout << "Input number of sweeps to preform: ";
     std::cin >> max_sweeps;
     fflush(stdin);
-    // for (int i = 0; i < total_measures; i++) {measurements[i].resize(max_sweeps);}
 
     motorcycle.get_inputs();
     std::cout << "Will preform " << max_sweeps << " sweeps\n\t" << motorcycle.get_total_sites() << " steps ever sweep" << std::endl;
+    std::cout << "This simulation will not produce any images. For those go to the manual simluation" << std::endl;
 
     std::cout << "\nDo you wish to see the inital lattice? 1 for yes 0 for no: ";
     std::cin >> print_first_lattice;
@@ -623,8 +616,6 @@ int main() {
 
     folder_name = "Temp_" + std::to_string(Temp) + "_Efield_" + std::to_string(Efield) + "_Size_" + std::to_string(Rows) + "x" + std::to_string(Columns) + "_seed_" + std::to_string(init_seed);
 
-    image_output = lattice_images / folder_name;
-    check_folder(image_output);
     data_output = lattice_data / folder_name;
     check_folder(data_output);
     
@@ -638,32 +629,16 @@ int main() {
     for (int s = 0; s < max_sweeps; s++) {
         std::array<double, 4> local_measurement;
         local_measurement = motorcycle.sweep();
-        // std::cout << "Finished sweep " << s << std::endl;
 
         for (int i = 0; i < total_measures; i++) {measurements[i].push_back(local_measurement[i]);}
 
         sf = motorcycle.structure_factor();
-        // std::cout << "SF[0] = " << sf[0] << " SF[1] = " << sf[1] << std::endl;
 
         measurements[total_measures].push_back(sf[0]); measurements[total_measures + 1].push_back(sf[1]);
-        // std::cout << "M[tm] = " << measurements[total_measures][0] << " M[tm + 1] = " << measurements[total_measures + 1][0] << std::endl;
 
         if ((s % 100000) == 0) {
             std::cout << "Completed Sweep " << s << std::endl;
-            // std::cout << "Measured Current = " << std::setprecision(5) << local_measurement[0] << " Exchanges = " << local_measurement[1] << " N+ = " << local_measurement[2] << " N- = " << local_measurement[3] << std::endl;
-            // std::cout << "Measured Current = " << typeid(local_measurement[0]).name() << " Exchanges = " << typeid(local_measurement[1]).name() << " N+ = " << typeid(local_measurement[2]).name() << " N- = " << typeid(local_measurement[3]).name() << std::endl;
-
-            // measurement_folder.push_back({local_measurement[0], local_measurement[1], local_measurement[2], local_measurement[3]});
-
-            // print lattice to file
-            // 
-            image_filename = std::to_string(s) + "_Current_" + std::to_string(local_measurement[0]) + "_Exchanges_" + std::to_string(local_measurement[1]) + "_Nplus_" + std::to_string(local_measurement[2]) + "_Nminus_" + std::to_string(local_measurement[3]) + ".txt";
-            image_filename = image_output / image_filename;
-            motorcycle.write_lattice(image_filename);
-
         }
-
-
     }
 
     if (print_final_lattice == 1) {
@@ -671,15 +646,11 @@ int main() {
         motorcycle.print_lattice();
     }
 
-    // motorcycle.get_density();
+    motorcycle.get_density();
+    std::cout << "If the above does not reflect a density of 0.5, then something is wrong with the code" << std::endl;
 
     std::string filename = "Temp_" + std::to_string(Temp) + "_Size_" + std::to_string(Rows) + "x" + std::to_string(Columns) + "_seed_" + std::to_string(init_seed) + "_sweeps_" + std::to_string(max_sweeps);
 
     write_csv(data_output, filename, measurements[0], measurements[1], measurements[total_measures], measurements[total_measures + 1]);
-
-    // for (int i = 0; i < measurements[0].size(); i++) {
-    //     std::cout << "Current: " << measurements[0][i] << std::endl;
-    // }
-
 
 }

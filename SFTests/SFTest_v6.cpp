@@ -43,6 +43,7 @@ int main() {
     out2D = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
 
     p = fftw_plan_dft_2d(R, C, in2D, out2D, FFTW_FORWARD, FFTW_ESTIMATE);
+    // p = fftw_plan_dft_r2c_2d(R, C, in2D, out2D, FFTW_FORWARD, FFTW_ESTIMATE);
 
     lattice.resize(R);
     for (int r = 0; r < R; r++) {
@@ -74,13 +75,13 @@ int main() {
 
     fftw_execute(p);
 
-    std::cout << "K = (2 pi / R, 0) = " << out2D[C * (R - 1)][REAL] << " + " << out2D[C * (R - 1)][IMAG] << std::endl;
+    for (int x = 0; x < N; x++) {std::cout << "X: " << x << " = " << out2D[x][REAL] << " + " << out2D[x][IMAG] << "i" << std::endl;}
+    std::cout << "K = (2 pi / R, 0) = " << out2D[C * (R - 1)][REAL] << " + " << out2D[C * (R - 1)][IMAG] << "i" << std::endl;
     std::cout << "K = (1, 0) = " << out2D[C][REAL] << " + " << out2D[C][IMAG] << std::endl;
-    std::cout << "K = (0, 2 pi / C) = " << out2D[C - 1][REAL] << " + " << out2D[C - 1][IMAG] << std::endl;
+    std::cout << "K = (0, 2 pi / C) = " << out2D[C - 1][REAL] << " + " << out2D[C - 1][IMAG] << "i" << std::endl;
     std::cout << "K = (0, 1) = " << out2D[1][REAL] << " + " << out2D[1][IMAG] << std::endl;
-    std::cout << "K = (2 pi / R, 2 pi / C) = " << out2D[N][REAL] << " + " << out2D[N][IMAG] << std::endl;
+    std::cout << "K = (2 pi / R, 2 pi / C) = " << out2D[N][REAL] << " + " << out2D[N][IMAG] << "i" << std::endl;
 
-    // for (int x = 0; x < N; x++) {std::cout << "X: " << x << " = " << out2D[x][REAL] << " + " << out2D[x][IMAG] << "i" << std::endl;}
     // for (int x = 0; x < N; x++ ){
     //     sfave += out2D[x][REAL]*out2D[x][REAL] + out2D[x][IMAG]*out2D[x][IMAG];
     // }
@@ -124,11 +125,12 @@ int main() {
 
     fftw_execute(p);
 
-    std::cout << "K = (2 pi / R, 0) = " << out2D[C * (R - 1)][REAL] << " + " << out2D[C * (R - 1)][IMAG] << std::endl;
+    for (int x = 0; x < N; x++) {std::cout << "X: " << x << " = " << out2D[x][REAL] << " + " << out2D[x][IMAG] << "i" << std::endl;}
+    std::cout << "K = (2 pi / R, 0) = " << out2D[C * (R - 1)][REAL] << " + " << out2D[C * (R - 1)][IMAG] << "i" << std::endl;
     std::cout << "K = (1, 0) = " << out2D[C][REAL] << " + " << out2D[C][IMAG] << std::endl;
-    std::cout << "K = (0, 2 pi / C) = " << out2D[C - 1][REAL] << " + " << out2D[C - 1][IMAG] << std::endl;
+    std::cout << "K = (0, 2 pi / C) = " << out2D[C - 1][REAL] << " + " << out2D[C - 1][IMAG] << "i" << std::endl;
     std::cout << "K = (0, 1) = " << out2D[1][REAL] << " + " << out2D[1][IMAG] << std::endl;
-    std::cout << "K = (2 pi / R, 2 pi / C) = " << out2D[N][REAL] << " + " << out2D[N][IMAG] << std::endl;
+    std::cout << "K = (2 pi / R, 2 pi / C) = " << out2D[N][REAL] << " + " << out2D[N][IMAG] << "i" << std::endl;
 
     // for (int x = 0; x < N; x++) {std::cout << "X: " << x << " = " << out2D[x][REAL] << " + " << out2D[x][IMAG] << "i" << std::endl;}
     // for (int x = 0; x < N; x++ ){
@@ -176,11 +178,12 @@ int main() {
 
     fftw_execute(p);
 
-    std::cout << "K = (2 pi / R, 0) = " << out2D[C * (R - 1)][REAL] << " + " << out2D[C * (R - 1)][IMAG] << std::endl;
+    for (int x = 0; x < N; x++) {std::cout << "X: " << x << " = " << out2D[x][REAL] << " + " << out2D[x][IMAG] << "i" << std::endl;}
+    std::cout << "K = (2 pi / R, 0) = " << out2D[C * (R - 1)][REAL] << " + " << out2D[C * (R - 1)][IMAG] << "i" << std::endl;
     std::cout << "K = (1, 0) = " << out2D[C][REAL] << " + " << out2D[C][IMAG] << std::endl;
-    std::cout << "K = (0, 2 pi / C) = " << out2D[C - 1][REAL] << " + " << out2D[C - 1][IMAG] << std::endl;
+    std::cout << "K = (0, 2 pi / C) = " << out2D[C - 1][REAL] << " + " << out2D[C - 1][IMAG] << "i" << std::endl;
     std::cout << "K = (0, 1) = " << out2D[1][REAL] << " + " << out2D[1][IMAG] << std::endl;
-    std::cout << "K = (2 pi / R, 2 pi / C) = " << out2D[N][REAL] << " + " << out2D[N][IMAG] << std::endl;
+    std::cout << "K = (2 pi / R, 2 pi / C) = " << out2D[N][REAL] << " + " << out2D[N][IMAG] << "i" << std::endl;
 
     // for (int x = 0; x < N; x++) {std::cout << "X: " << x << " = " << out2D[x][REAL] << " + " << out2D[x][IMAG] << "i" << std::endl;}
     // for (int x = 0; x < N; x++ ){
