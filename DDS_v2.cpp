@@ -16,7 +16,7 @@
 #define IMAG 1
 
 // compile with this line!
-// g++ DDW_v2.cpp -lfftw3 -lm
+// g++ DDS_v2.cpp -lfftw3 -lm -o DDS_Manual.out
 
 namespace fs = std::filesystem;
 
@@ -239,27 +239,40 @@ private:
 
 public:
 
-    int delta_energy(int row, int col, int rop, int cop) {
+    int delta_energy(int row, int col, int rop, int cop, int dir) {
         int local_energy, prime_energy, return_energy;
         // std::array<int, 2> prime_position = nearest_neighbor(row, col, dir);
 
         // std::cout << lattice[row][col] << std::endl;//"\t" << lattice[prime_position[0]][prime_position[1]] << std::endl;
 
-        std::array<int, 4> local_neighbors = nearest_neighbors(row, col);
+        std::array<int, 4> chosen_neighbors = nearest_neighbors(row, col);
         std::array<int, 4> prime_neighbors = nearest_neighbors(rop, cop);
 
-        int rowd = local_neighbors[0]; int colr = local_neighbors[1]; int rowu = local_neighbors[2]; int coll = local_neighbors[3];
-        int ropd = prime_neighbors[0]; int copr = local_neighbors[1]; int ropu = local_neighbors[2]; int copl = local_neighbors[3];
+        int rowd = chosen_neighbors[0]; int colr = chosen_neighbors[1]; int rowu = chosen_neighbors[2]; int coll = chosen_neighbors[3];
+        int ropd = prime_neighbors[0]; int copr = prime_neighbors[1]; int ropu = prime_neighbors[2]; int copl = prime_neighbors[3];
 
-        local_energy = (lattice[rowd][col] + lattice[row][colr] + lattice[rowu][col] + lattice[row][coll]) * lattice[row][col]; 
-        prime_energy = (lattice[ropd][cop] + lattice[rop][copr] + lattice[ropu][cop] + lattice[rop][copl]) * lattice[rop][cop];
+        if (dir == 1) {        
+            local_energy = (lattice[row][coll] + lattice[rowu][col] + lattice[row][colr]) * lattice[row][col]; 
+            prime_energy = (lattice[ropd][cop] + lattice[rop][copl] + lattice[rop][copr]) * lattice[rop][cop];
+        }
+        else if (dir == 2) {        
+            local_energy = (lattice[rowd][col] + lattice[rowu][col] + lattice[row][colr]) * lattice[row][col]; 
+            prime_energy = (lattice[ropd][cop] + lattice[rop][copl] + lattice[ropu][cop]) * lattice[rop][cop];
+        }
+        else if (dir == 3) {        
+            local_energy = (lattice[rowd][col] + lattice[row][coll] + lattice[row][colr]) * lattice[row][col]; 
+            prime_energy = (lattice[rop][copl] + lattice[ropu][cop] + lattice[rop][copr]) * lattice[rop][cop];
+        }
+        else {        
+            local_energy = (lattice[rowd][col] + lattice[row][coll] + lattice[rowu][col]) * lattice[row][col]; 
+            prime_energy = (lattice[ropd][cop] + lattice[ropu][cop] + lattice[rop][copr]) * lattice[rop][cop];
+        }
 
         return_energy = local_energy + prime_energy;
 
         return return_energy;
 
     }
-
 
     // The road to hell is paved in minus signs
     // assumes the move has been accepted
@@ -414,7 +427,7 @@ public:
             if (sk != skp) {  // checks if those neighbors are different: if not then proceed
 
                 // nearest_neighbor
-                energy = delta_energy(rran, cran, rrap, crap); // Does not look at the Field
+                energy = delta_energy(rran, cran, rrap, crap, dir); // Does not look at the Field
 
                 q = set_charge(sk, skp, dir);
 
