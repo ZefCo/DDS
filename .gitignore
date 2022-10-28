@@ -6,3 +6,6 @@ TempImages/
 CleanUP/
 *.gif
 Data/
+.Rproj.user
+DDS.Rproj
+AutoCorr/
