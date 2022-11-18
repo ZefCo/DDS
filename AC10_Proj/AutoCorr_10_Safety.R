@@ -124,9 +124,10 @@ for (i in 1:length(rootfolder)) {
   f_index[[i]] <- subpath
   
   file_information <- strsplit(filepath, "_")
-  t_index <- file_information[[1]][2]
-  e_index <- file_information[[1]][4]
-  s_index <- file_information[[1]][6]
+  # print(file_information)
+  t_index[[i]] <- file_information[[1]][2]
+  e_index[[i]] <- file_information[[1]][4]
+  s_index[[i]] <- file_information[[1]][6]
   
   print("Finished auto correlation of file: ")
   print(subpath)
