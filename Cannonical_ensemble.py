@@ -100,7 +100,7 @@ def main():
         sfk10_local = numpy.array(sfk10_local).mean()
         sfk01_local = numpy.array(sfk01_local).mean()
 
-        sizes.append(size_settings), temps.append(temp_setting), sfk10.append(sfk10_local), sfk01.append(sfk10_local)
+        sizes.append(size_settings), temps.append(temp_setting), sfk10.append(sfk10_local), sfk01.append(sfk01_local)
 
         # master = pandas.concat([master, pandas.Series()])
 
