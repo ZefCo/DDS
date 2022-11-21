@@ -26,7 +26,7 @@ def main():
 
     rows, _ = auto_corr.shape
 
-    sizes, temps, sfk10, sfk01 = [], [], [], []
+    sizes, temps, sfk10, sfk01, bc10, bc01 = [], [], [], [], [], []
 
     for row in range(rows):
         row_of_interest = auto_corr.iloc[row, :].copy()
@@ -64,8 +64,7 @@ def main():
         # print(measure_index)
         # break
 
-        sfk10_local = []
-        sfk01_local = []
+        sfk10_local, sfk01_local, bc01_local, bc10_local = [], [], [], []
 
         print(f"Working on subfolder:\n{subfolder}")
 
@@ -94,17 +93,21 @@ def main():
 
             sfk10_local.append(ensemble["SFk10"].mean())
             sfk01_local.append(ensemble["SFk01"].mean())
+            bc01_local.append(ensemble["SFk10"].mean()**2), bc10_local.append(ensemble["SFk01"].mean()**2) 
 
             # print(sub_frame)
 
         sfk10_local = numpy.array(sfk10_local).mean()
         sfk01_local = numpy.array(sfk01_local).mean()
 
-        sizes.append(size_settings), temps.append(temp_setting), sfk10.append(sfk10_local), sfk01.append(sfk10_local)
+        bc10_local = 2 - (numpy.array(bc10_local).mean() / (sfk10_local**2))
+        bc01_local = 2 - (numpy.array(bc10_local).mean() / (sfk01_local**2))
+
+        sizes.append(size_settings), temps.append(temp_setting), sfk10.append(sfk10_local), sfk01.append(sfk01_local), bc10.append(bc10_local), bc01.append(bc01_local)
 
         # master = pandas.concat([master, pandas.Series()])
 
-    master = pandas.DataFrame(data={"Size": sizes, "Temp": temps, "SFk10": sfk10, "SFk01": sfk01})
+    master = pandas.DataFrame(data={"Size": sizes, "Temp": temps, "SFk10": sfk10, "SFk01": sfk01, "BC10": bc10, "BC01": bc01})
 
     print(master)
 
