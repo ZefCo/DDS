@@ -14,7 +14,7 @@ def main():
 
     # print(cwd)
 
-    ac10_file = cwd / "AC10_Proj" / "AutoCorrs_10_Safe.csv"
+    ac10_file = cwd / "AC10_Proj" / "AC_Test.csv"
 
     with open(ac10_file) as file:
         auto_corr = pandas.read_csv(file, header=0, index_col="Unnamed: 0")
@@ -42,6 +42,8 @@ def main():
                 efield_setting = f"{efield_setting}0"
 
         size_settings = row_of_interest["Size"]
+        size_temp = re.split("x", size_settings)
+        sites = int(size_temp[0]) * int(size_temp[1])
 
         subfolder = cwd / "Data" / size_settings / temp_setting
         files = list(subfolder.rglob("*.csv"))
@@ -86,14 +88,20 @@ def main():
                     ensemble = pandas.concat([ensemble, local_data])
 
             ensemble = ensemble.sort_values(by="sweep")
+
             # ensemble = ensemble.set_index("sweep")
 
             ensemble = ensemble[ensemble["sweep"].isin(measure_index)]
             # print(ensemble)
+            ensemble["SFk01"] = (1/sites) * ensemble["SFk01"]
+            ensemble["SFk10"] = (1/sites) * ensemble["SFk10"]
+
+            ensemble["SFk01**2"] = ensemble["SFk01"]**2
+            ensemble["SFk10**2"] = ensemble["SFk10"]**2
 
             sfk10_local.append(ensemble["SFk10"].mean())
             sfk01_local.append(ensemble["SFk01"].mean())
-            bc01_local.append(ensemble["SFk10"].mean()**2), bc10_local.append(ensemble["SFk01"].mean()**2) 
+            bc01_local.append(ensemble["SFk01**2"].mean()), bc10_local.append(ensemble["SFk10**2"].mean()) 
 
             # print(sub_frame)
 
@@ -101,7 +109,7 @@ def main():
         sfk01_local = numpy.array(sfk01_local).mean()
 
         bc10_local = 2 - (numpy.array(bc10_local).mean() / (sfk10_local**2))
-        bc01_local = 2 - (numpy.array(bc10_local).mean() / (sfk01_local**2))
+        bc01_local = 2 - (numpy.array(bc01_local).mean() / (sfk01_local**2))
 
         sizes.append(size_settings), temps.append(temp_setting), sfk10.append(sfk10_local), sfk01.append(sfk01_local), bc10.append(bc10_local), bc01.append(bc01_local)
 
@@ -111,7 +119,7 @@ def main():
 
     print(master)
 
-    master.to_csv(cwd / "GCan.csv", index = None, header = True)
+    master.to_csv(cwd / "GCan_5.csv", index = None, header = True)
 
 
 
