@@ -14,7 +14,7 @@ def main():
 
     # print(cwd)
 
-    ac10_file = cwd / "AC10_Proj" / "AC_Test.csv"
+    ac10_file = cwd / "AC_Test.csv"
 
     with open(ac10_file) as file:
         auto_corr = pandas.read_csv(file, header=0, index_col="Unnamed: 0")
@@ -42,8 +42,8 @@ def main():
                 efield_setting = f"{efield_setting}0"
 
         size_settings = row_of_interest["Size"]
-        size_temp = re.split("x", size_settings)
-        sites = int(size_temp[0]) * int(size_temp[1])
+        size_dump = re.split("x", size_settings)
+        sites = int(size_dump[0]) * int(size_dump[1])
 
         subfolder = cwd / "Data" / size_settings / temp_setting
         files = list(subfolder.rglob("*.csv"))
@@ -93,8 +93,8 @@ def main():
 
             ensemble = ensemble[ensemble["sweep"].isin(measure_index)]
             # print(ensemble)
-            ensemble["SFk01"] = (1/sites) * ensemble["SFk01"]
-            ensemble["SFk10"] = (1/sites) * ensemble["SFk10"]
+            ensemble["SFk01"] = (numpy.sin(numpy.pi / size_dump[1]) /2*size_dump[0]) * ensemble["SFk01"]
+            ensemble["SFk10"] = (numpy.sin(numpy.pi / size_dump[0]) /2*size_dump[1]) * ensemble["SFk10"]
 
             ensemble["SFk01**2"] = ensemble["SFk01"]**2
             ensemble["SFk10**2"] = ensemble["SFk10"]**2
@@ -108,8 +108,8 @@ def main():
         sfk10_local = numpy.array(sfk10_local).mean()
         sfk01_local = numpy.array(sfk01_local).mean()
 
-        bc10_local = 2 - (numpy.array(bc10_local).mean() / (sfk10_local**2))
-        bc01_local = 2 - (numpy.array(bc01_local).mean() / (sfk01_local**2))
+        bc10_local = 1 - (numpy.array(bc10_local).mean() / (3*(sfk10_local**2)))
+        bc01_local = 1 - (numpy.array(bc01_local).mean() / (3*(sfk01_local**2)))
 
         sizes.append(size_settings), temps.append(temp_setting), sfk10.append(sfk10_local), sfk01.append(sfk01_local), bc10.append(bc10_local), bc01.append(bc01_local)
 
@@ -119,7 +119,7 @@ def main():
 
     print(master)
 
-    master.to_csv(cwd / "GCan_5.csv", index = None, header = True)
+    master.to_csv(cwd / "GCan_6.csv", index = None, header = True)
 
 
 
