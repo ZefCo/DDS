@@ -26,7 +26,7 @@ def main():
 
     rows, _ = auto_corr.shape
 
-    sizes, temps, sfk10, sfk01, bc10, bc01 = [], [], [], [], [], []
+    sizes, temps, sfk10, sfk01, bc10, bc01, sqr01, sqr10 = [], [], [], [], [], [], [], []
 
     for row in range(rows):
         row_of_interest = auto_corr.iloc[row, :].copy()
@@ -43,7 +43,8 @@ def main():
 
         size_settings = row_of_interest["Size"]
         size_dump = re.split("x", size_settings)
-        sites = int(size_dump[0]) * int(size_dump[1])
+        parralel, orthogonal = int(size_dump[0]), int(size_dump[1])
+        sites = parralel * orthogonal
 
         subfolder = cwd / "Data" / size_settings / temp_setting
         files = list(subfolder.rglob("*.csv"))
@@ -66,7 +67,7 @@ def main():
         # print(measure_index)
         # break
 
-        sfk10_local, sfk01_local, bc01_local, bc10_local = [], [], [], []
+        sfk10_local, sfk01_local, sqr01_local, sqr10_local = [], [], [], []
 
         print(f"Working on subfolder:\n{subfolder}")
 
@@ -93,33 +94,37 @@ def main():
 
             ensemble = ensemble[ensemble["sweep"].isin(measure_index)]
             # print(ensemble)
-            ensemble["SFk01"] = (numpy.sin(numpy.pi / size_dump[1]) /2*size_dump[0]) * ensemble["SFk01"]
-            ensemble["SFk10"] = (numpy.sin(numpy.pi / size_dump[0]) /2*size_dump[1]) * ensemble["SFk10"]
+            ensemble["SFk01"] = (1 / sites) * ensemble["SFk01"]
+            ensemble["SFk10"] = (1 / sites) * ensemble["SFk10"]
 
             ensemble["SFk01**2"] = ensemble["SFk01"]**2
             ensemble["SFk10**2"] = ensemble["SFk10"]**2
 
             sfk10_local.append(ensemble["SFk10"].mean())
             sfk01_local.append(ensemble["SFk01"].mean())
-            bc01_local.append(ensemble["SFk01**2"].mean()), bc10_local.append(ensemble["SFk10**2"].mean()) 
+            sqr01_local.append(ensemble["SFk01**2"].mean())
+            sqr10_local.append(ensemble["SFk10**2"].mean()) 
 
             # print(sub_frame)
 
         sfk10_local = numpy.array(sfk10_local).mean()
         sfk01_local = numpy.array(sfk01_local).mean()
 
-        bc10_local = 1 - (numpy.array(bc10_local).mean() / (3*(sfk10_local**2)))
-        bc01_local = 1 - (numpy.array(bc01_local).mean() / (3*(sfk01_local**2)))
+        sqr10_local = numpy.array(sqr10_local).mean()
+        sqr01_local = numpy.array(sqr01_local).mean()
+       
+        bc10_local = 1 - (sqr10_local / (3*(sfk10_local**2)))
+        bc01_local = 1 - (sqr01_local / (3*(sfk01_local**2)))
 
-        sizes.append(size_settings), temps.append(temp_setting), sfk10.append(sfk10_local), sfk01.append(sfk01_local), bc10.append(bc10_local), bc01.append(bc01_local)
+        sizes.append(size_settings), temps.append(temp_setting), sfk10.append(sfk10_local), sfk01.append(sfk01_local), bc10.append(bc10_local), bc01.append(bc01_local), sqr10.append(sqr10_local), sqr01.append(sqr01_local)
 
         # master = pandas.concat([master, pandas.Series()])
 
-    master = pandas.DataFrame(data={"Size": sizes, "Temp": temps, "SFk10": sfk10, "SFk01": sfk01, "BC10": bc10, "BC01": bc01})
+    master = pandas.DataFrame(data={"Size": sizes, "Temp": temps, "SFk10": sfk10, "SFk01": sfk01, "BC10": bc10, "BC01": bc01, "Sqr10": sqr10, "Sqr01": sqr01})
 
     print(master)
 
-    master.to_csv(cwd / "GCan_6.csv", index = None, header = True)
+    master.to_csv(cwd / "GCan_7.csv", index = None, header = True)
 
 
 
