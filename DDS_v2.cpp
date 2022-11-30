@@ -101,8 +101,8 @@ private:
     // Initialize the arrays that hold the Boltzman values
     // joltzman for J Boltzman
     void init_joltzman() {
-        for (int i = 0; i <= 8; i++) {
-            joltzman[i] = exp((-2.0 * i) / T);  // for loop goes from 0 to 8
+        for (int i = -8; i <= 8; i++) {
+            joltzman[i] = exp((-2.0 * i) / T);  // for loop goes from -8 to 8, it's more then I need but whatever
         }
 
     }
@@ -135,7 +135,7 @@ private:
         for (int i = 0; i < R; i++) {
             for (int j = 0; j < C; j++) {
                 // int v = random_spin();
-                lattice[i][j] = 0;
+                lattice[i][j] = -1;
 
             }
         }
@@ -148,7 +148,7 @@ private:
                 int i = random_int(0, R); // Generate a random position
                 int j = random_int(0, C);
                 int local_site = lattice[i][j]; // get the value at that position
-                if (local_site == 0) {lattice[i][j] = 1; looking = false;} // if it's 0, make it 1, else keep looking
+                if (local_site == 0) {lattice[i][j] = 1; looking = false;} // if it's -1, make it 1, else keep looking
             } while(looking);
         }
 
@@ -366,7 +366,8 @@ public:
             for (int j = 0; j < C; j++){
                 // std::cout << lattice[i][j] << "\t";
                 if (lattice[i][j] == 1) { std::cout << "@" << " "; }
-                else if (lattice[i][j] == 0) { std::cout << " " << " "; } 
+                else if (lattice[i][j] == -1) { std::cout << " " << " "; }
+                else {std::cout << "!" << " ";}
             }
             std::cout << "\n";
         }

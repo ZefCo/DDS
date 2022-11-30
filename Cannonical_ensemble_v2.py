@@ -52,8 +52,8 @@ def main():
         orders = []
         seeds = []
 
-        prefactor01 = (numpy.sin(numpy.pi / orthogonal) * (2*parralel)**-1)**2
-        prefactor10 = (numpy.sin(numpy.pi / parralel) * (2*orthogonal)**-1)**2
+        # prefactor01 = (numpy.sin(numpy.pi / orthogonal) * (2*parralel)**-1)**2
+        # prefactor10 = (numpy.sin(numpy.pi / parralel) * (2*orthogonal)**-1)**2
 
         for file in files:
 
@@ -97,8 +97,8 @@ def main():
 
             ensemble = ensemble[ensemble["sweep"].isin(measure_index)]
             # print(ensemble)
-            ensemble["SFk01"] = prefactor01 * ensemble["SFk01"]
-            ensemble["SFk10"] = prefactor10 * ensemble["SFk10"]
+            ensemble["SFk01"] = 0.5 * ensemble["SFk01"]
+            ensemble["SFk10"] = 0.5 * ensemble["SFk10"]
 
             ensemble["SFk01**2"] = ensemble["SFk01"]**2
             ensemble["SFk10**2"] = ensemble["SFk10"]**2
@@ -106,8 +106,8 @@ def main():
             ensemble["SFk01**4"] = ensemble["SFk01"]**4
             ensemble["SFk10**4"] = ensemble["SFk10"]**4
 
-            ensemble["Sqrt01"] = numpy.sqrt(ensemble["SFk01"])
-            ensemble["Sqrt10"] = numpy.sqrt(ensemble["SFk10"])
+            ensemble["Rad01"] = numpy.sqrt(ensemble["SFk01"])
+            ensemble["Rad10"] = numpy.sqrt(ensemble["SFk10"])
 
             sfk01_local.append(ensemble["SFk01"].mean())
             sfk10_local.append(ensemble["SFk10"].mean())
@@ -118,8 +118,8 @@ def main():
             zen01_local.append(ensemble["SFk01**4"].mean()) 
             zen10_local.append(ensemble["SFk10**4"].mean())
 
-            rad01_local.append(ensemble["Sqrt01"].mean())
-            rad10_local.append(ensemble["Sqrt10"].mean())
+            rad01_local.append(ensemble["Rad01"].mean())
+            rad10_local.append(ensemble["Rad10"].mean())
 
             # print(sub_frame)
 
@@ -132,18 +132,24 @@ def main():
         zen10_local = numpy.array(zen10_local).mean()
         zen01_local = numpy.array(zen01_local).mean()
        
-        # bc10_local = 1 - (sqr10_local / (3*(sfk10_local**2)))
-        # bc01_local = 1 - (sqr01_local / (3*(sfk01_local**2)))
+        rad10_local = numpy.array(rad10_local).mean()
+        rad01_local = numpy.array(rad01_local).mean()
 
-        sizes.append(size_settings), temps.append(temp_setting), sfk10.append(sfk10_local), sfk01.append(sfk01_local), sqr10.append(sqr10_local), sqr01.append(sqr01_local), zen10.append(zen10_local), zen01.append(zen01_local)
+        sizes.append(size_settings), temps.append(temp_setting)
+        sfk10.append(sfk10_local), sfk01.append(sfk01_local)
+        sqr10.append(sqr10_local), sqr01.append(sqr01_local)
+        zen10.append(zen10_local), zen01.append(zen01_local)
+        rad10.append(rad10_local), rad01.append(rad01_local)
 
         # master = pandas.concat([master, pandas.Series()])
 
-    master = pandas.DataFrame(data={"Size": sizes, "Temp": temps, "SFk10": sfk10, "SFk01": sfk01, "Sqr10": sqr10, "Sqr01": sqr01, "Zen10": zen10, "Zen01": zen01})
+    master = pandas.DataFrame(data={"Size": sizes, "Temp": temps,
+                                    "Rad10": rad10, "SFk10": sfk10, "Sqr10": sqr10, "Zen10": zen10,  
+                                    "Rad01": rad01, "SFk01": sfk01, "Sqr01": sqr01, "Zen01": zen01})
 
     # print(master)
 
-    master.to_csv(cwd / "GCan_8.csv", index = None, header = True)
+    master.to_csv(cwd / "GCan_11.csv", index = None, header = True)
 
 
 
