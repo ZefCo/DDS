@@ -11,18 +11,19 @@
 # include <filesystem>
 # include <fftw3.h>
 # include "HeaderFiles/ran2cpp.h"
+# include "HeaderFiles/Seeder.h"
 
 #define REAL 0
 #define IMAG 1
 
 // compile with this line!
-// g++ DDS_v2.cpp -lfftw3 -lm -o DDS_Manual.out
+// g++ DDS_v4.cpp -lfftw3 -lm -o DDS.out
 
 namespace fs = std::filesystem;
 
 // Declaring seed to be a global variable. Trying to avoid declaring anything else as global
 int seed;
-int const total_measures = 4;
+int const total_measures = 2;
 
 
 // Just pauses the script and waits for the user to press enter
@@ -119,9 +120,9 @@ private:
     // Place spins on the lattice
     void init_lattice() {
 
-        double SaveE = E;
-        E = 0;
-        std::array<double, 4> dump;  // These will not be used, they are just to save data that is going to be dumped.
+        // double SaveE = E;
+        // E = 0;
+        std::array<double, total_measures> dump;  // These will not be used, they are just to save data that is going to be dumped.
 
         N = R * C;
 
@@ -152,20 +153,11 @@ private:
             } while(looking);
         }
 
-
         init_joltzman();
         init_eoltzman();
-        // print_boltzman();
 
-        std::cout << "Warming up lattice with E = 0 for 15,000 sweeps" << std::endl;
-        for (int s = 0; s < 15000; s++) {dump = sweep();}
-
-        std::cout << "Warming up lattice with E = " << SaveE << " for 15,000 sweeps" << std::endl;
-        eoltzman.clear();
-        E = SaveE;
-        init_eoltzman();
-        // print_boltzman();
-        for (int s = 0; s < 15000; s++) {dump = sweep();}
+        std::cout << "Warming up lattice with E = " << E << " for 100,000 sweeps" << std::endl;
+        for (int s = 0; s < 100000; s++) {dump = sweep();}
     }
 
 
@@ -181,17 +173,25 @@ private:
 
 
     // Finds the nearest neighbor to the randomly selected particle
-    // then picks a direction and at random: order is starts at bottom and goes cw
+    // then picks a direction and at random: order is starts at right and goes to the left
     std::array<int, 2> nearest_neighbor(int row, int col, int dir) {
 
         int rowp, colp;
         std::array<int, 2> prime;
 
-        if (dir == 1) {rowp = (row + 1) % R; colp = col;}  // down one
-        else if (dir == 2) {rowp = row; colp = (col - 1 + C) % C;}  // left one
-        else if (dir == 3) {rowp = (row - 1 + R) % R; colp = col;} // up one
-        else if (dir == 4) {rowp = row; colp = (col + 1) % C;}  // right one
+        if (lattice[row][col] == 1) {
+            if (dir == 1) {rowp = row; colp = (col + 1) % C;}  // right one
+            else if (dir == 2) {rowp = (row + 1) % R; colp = col;}  // down one
+            else if (dir == 3) {rowp = row; colp = (col - 1 + C) % C;} // left one
+            else {rowp = (row - 1 + R) % R; colp = col;}  // up one - these go against the E field
+        }
 
+        else {
+            if (dir == 1) {rowp = row; colp = (col + 1) % C;}  // right one
+            else if (dir == 2) {rowp = (row - 1 + R) % R; colp = col;}  // up one
+            else if (dir == 3) {rowp = row; colp = (col - 1 + C) % C;} // left one
+            else {rowp = (row + 1) % R; colp = col;}  // down one - these go against the E field
+        }
 
         prime = {rowp, colp};
 
@@ -216,26 +216,6 @@ private:
     }
 
 
-    // made this a seperate function to make it easier to read
-    int set_charge(int sk, int skp, int dir) {
-        int q;
-
-        if (dir == 1) // if the direction is going down (increasing Row #), it's going with the field
-        {
-            if (sk == 1) {q = 1;} // if it's 1 then it's a + charge
-            else {q = -1;} // else it's a - charge
-        }
-        else if (dir == 3) // if the direction is going up (decreasing Row #), it's going against the field
-        {
-            if (sk == 1) {q = -1;} // if it's a 1 then it's a + charge
-            else {q = 1;} // else it's a - charge
-        }
-        else {q = 0;}  // Else it's going perpendicular to the field and therefore we don't care.
-
-        return q;
-
-    }
-
 
 public:
 
@@ -248,24 +228,36 @@ public:
         std::array<int, 4> chosen_neighbors = nearest_neighbors(row, col);
         std::array<int, 4> prime_neighbors = nearest_neighbors(rop, cop);
 
-        int rowd = chosen_neighbors[0]; int colr = chosen_neighbors[1]; int rowu = chosen_neighbors[2]; int coll = chosen_neighbors[3];
-        int ropd = prime_neighbors[0]; int copr = prime_neighbors[1]; int ropu = prime_neighbors[2]; int copl = prime_neighbors[3];
+        int rowd = chosen_neighbors[0]; int coll = chosen_neighbors[1]; int rowu = chosen_neighbors[2]; int colr = chosen_neighbors[3];
+        int ropd = prime_neighbors[0]; int copl = prime_neighbors[1]; int ropu = prime_neighbors[2]; int copr = prime_neighbors[3];
 
         if (dir == 1) {        
-            local_energy = (lattice[row][coll] + lattice[rowu][col] + lattice[row][colr]) * lattice[row][col]; 
-            prime_energy = (lattice[ropd][cop] + lattice[rop][copl] + lattice[rop][copr]) * lattice[rop][cop];
-        }
-        else if (dir == 2) {        
-            local_energy = (lattice[rowd][col] + lattice[rowu][col] + lattice[row][colr]) * lattice[row][col]; 
-            prime_energy = (lattice[ropd][cop] + lattice[rop][copl] + lattice[ropu][cop]) * lattice[rop][cop];
+            local_energy = (lattice[rowd][col] + lattice[rowu][col] + lattice[row][coll]) * lattice[row][col]; 
+            prime_energy = (lattice[ropd][cop] + lattice[ropu][cop] + lattice[rop][copr]) * lattice[rop][cop];
         }
         else if (dir == 3) {        
-            local_energy = (lattice[rowd][col] + lattice[row][coll] + lattice[row][colr]) * lattice[row][col]; 
-            prime_energy = (lattice[rop][copl] + lattice[ropu][cop] + lattice[rop][copr]) * lattice[rop][cop];
+            local_energy = (lattice[rowd][col] + lattice[rowu][col] + lattice[row][colr]) * lattice[row][col]; 
+            prime_energy = (lattice[ropd][cop] + lattice[ropu][cop] + lattice[rop][copl]) * lattice[rop][cop];
         }
-        else {        
-            local_energy = (lattice[rowd][col] + lattice[row][coll] + lattice[rowu][col]) * lattice[row][col]; 
-            prime_energy = (lattice[ropd][cop] + lattice[ropu][cop] + lattice[rop][copr]) * lattice[rop][cop];
+        else if (dir == 2) {
+            if (lattice[row][col] == 1) {
+                local_energy = (lattice[row][coll] + lattice[rowu][col] + lattice[row][colr]) * lattice[row][col]; 
+                prime_energy = (lattice[rop][copl] + lattice[ropd][cop] + lattice[rop][copr]) * lattice[rop][cop];
+            }
+            else {
+                local_energy = (lattice[row][coll] + lattice[row][colr] + lattice[rowd][col]) * lattice[row][col]; 
+                prime_energy = (lattice[rop][copl] + lattice[rop][copr] + lattice[ropu][cop]) * lattice[rop][cop];
+            }
+        }
+        else if (dir == 4) {
+            if (lattice[row][col] == 1) {
+                local_energy = (lattice[row][coll] + lattice[row][colr] + lattice[rowd][col]) * lattice[row][col]; 
+                prime_energy = (lattice[rop][copl] + lattice[rop][copr] + lattice[ropu][cop]) * lattice[rop][cop];
+            }
+            else {
+                local_energy = (lattice[row][coll] + lattice[row][colr] + lattice[rowu][col]) * lattice[row][col];
+                prime_energy = (lattice[rop][copl] + lattice[rop][copr] + lattice[ropd][cop]) * lattice[rop][cop];
+            }
         }
 
         return_energy = local_energy + prime_energy;
@@ -274,25 +266,6 @@ public:
 
     }
 
-    // The road to hell is paved in minus signs
-    // assumes the move has been accepted
-    int get_current(int sk, int dir) {
-        int current_dir = 0;
-
-        if (sk == 1) 
-        {
-            if (dir == 1) {current_dir = 1;}
-            else if (dir == 3) {current_dir = -1;}
-        }
-        else if (sk == 0)
-        {
-            if (dir == 1) {current_dir = -1;}
-            else if (dir == 3) {current_dir = 1;}
-        }
-
-        return current_dir;
-
-    }
 
 
     // In case I need the total spins
@@ -382,7 +355,9 @@ public:
     // specific row. You will generally want i = C(R - 1) for k(1, 0) and i = C - 1 for k(0, 1)
     std::array< double, 2> structure_factor() {
         double k10, k01;
-        int index10 = C * (R - 1), index01 = C - 1;
+        // int index10 = C * (R - 1), index01 = C - 1;
+        int index10 = C, index01 = 1;  // Above is the way I thought it was to be done, this is the way Yi-Kai and I discussed and am not convinced it's done
+        // Technically though I think they are interchangable as they were Z = z1 + z2*i and Z = z1 - z2*i so when you took |Z|**2 you got the same answer
 
         for (int r = 0; r < R; r++) {
             for (int c = 0; c < C; c++) {
@@ -391,6 +366,8 @@ public:
         }
 
         fftw_execute(plan);
+
+        // I think 01 and 10 are reversed, which doesn't matter because it's really just labeling.
 
         k10 = (out2D[index10][REAL] * out2D[index10][REAL]) + (out2D[index10][IMAG] * out2D[index10][IMAG]);
         k01 = (out2D[index01][REAL] * out2D[index01][REAL]) + (out2D[index01][IMAG] * out2D[index01][IMAG]);
@@ -405,7 +382,7 @@ public:
 
     std::array<double, total_measures> sweep() {
         std::array<double, total_measures> measurements;
-        double Nplus = 0, Nminus = 0, current, exchanges;
+        double Nplus = 0, current;
         int sk, skp;  // S sub k and S sub k prime
 
         for (int n = 1; n < N + 1; n++) {
@@ -416,6 +393,7 @@ public:
             // std::cout << "\tline 317";
             rran = random_int(0, R); 
             cran = random_int(0, C); // gets a random position
+            sk = lattice[rran][cran]; 
 
             // std::cout << "\tline 321";
             dir = random_int(1, 5); // returns a number between 1 and 4
@@ -423,14 +401,16 @@ public:
             std::array<int, 2> prime_position = nearest_neighbor(rran, cran, dir);
             rrap = prime_position[0]; crap = prime_position[1];  // gets the nearest neighbor in a direction
 
-            sk = lattice[rran][cran]; skp = lattice[rrap][crap];
+            skp = lattice[rrap][crap];
 
             if (sk != skp) {  // checks if those neighbors are different: if not then proceed
 
                 // nearest_neighbor
                 energy = delta_energy(rran, cran, rrap, crap, dir); // Does not look at the Field
 
-                q = set_charge(sk, skp, dir);
+                if (dir == 2) {q = 1;} // q = 1 is in the proper charge direction of the E field
+                else if (dir == 4) {q = -1;} // q = -1 is against the charge direction of the E field
+                else {q = 0;}
 
                 double probability = joltzman[energy] * eoltzman[q];
                 double chance = NR::ran2(seed);
@@ -442,17 +422,15 @@ public:
                     lattice[rran][cran] = exchange_two;
                     lattice[rrap][crap] = exchange_one;
 
-                    if (get_current(sk, dir) == 1) {Nplus += 1;} // current with field, charge against
-                    else if (get_current(sk, dir) == -1) {Nminus += 1;} // b/c Fuck Ben Franklin
+                    if ((dir == 2)) {Nplus += 1;} // current with field, charge against
+                    // else if ((dir == 2) && (sk == -1)) {Nminus += 1;} // b/c Fuck Ben Franklin
 
                 }
             }
         }
 
-        current = (1/(double)N)* (Nplus - Nminus);
-        exchanges = (1/(double)N)* (Nplus + Nminus);
-
-        measurements = {current, exchanges, Nplus, Nminus};
+        current = (1/(double)N)* (Nplus);
+        measurements = {current, Nplus};
 
         return measurements;
 
@@ -505,7 +483,7 @@ void check_folder(fs::path file_path) {
 
 
 // writes the Mag and mag to a csv file. Do not include the .csv portion of the filename, that will be added later
-void write_csv(fs::path directory, std::string master_filename, std::vector<double> Current, std::vector<double> Exchanges, std::vector<double> k10, std::vector<double> k01) { //, std::vector<float> Energy, std::vector<float> energy) {
+void write_csv(fs::path directory, std::string master_filename, std::vector<double> Current, std::vector<double> k10, std::vector<double> k01) { //, std::vector<float> Energy, std::vector<float> energy) {
 
     int Lmod = 1000000;
     int L = Current.size(); // this really only works if all the vectors are the same size, which they should be.
@@ -545,11 +523,10 @@ void write_csv(fs::path directory, std::string master_filename, std::vector<doub
             std::cout << "Start = " << start << " End = " << end << std::endl;
         }
 
-        fileout << "sweep,Current,Exchanges,SFk10,SFk01\n";
+        fileout << "sweep,Current,SFk10,SFk01\n";
         for (long i = start; i < end; i++) {
             long index = ((i + 1) / 1);
-            // std::cout << "Index: " << index << " Current: " << Current.at(i) << " Exchanges: " << Exchanges.at(i) << std::endl;
-            fileout << index << "," << Current.at(i) << "," << Exchanges.at(i) << "," << k10.at(i) << "," << k01.at(i) << "\n"; //"," << Energy.at(i) << "," << energy.at(i) << "\n";
+            fileout << index << "," << Current.at(i) << "," << k10.at(i) << "," << k01.at(i) << "\n"; //"," << Energy.at(i) << "," << energy.at(i) << "\n";
         }
         start += Lmod;
 
@@ -568,23 +545,18 @@ int main() {
     std::array<double, 2> sf;
     std::array<std::vector<double>, total_measures + 2> measurements;
 
-    fs::path image_output, data_output, lattice_images, lattice_data, image_filename ;
+    fs::path image_output, data_output, lattice_data;
     std::string folder_name;
     
-    lattice_images = fs::current_path() / "LatticeImages";
     lattice_data = fs::current_path() / "Data";
 
-    check_folder(lattice_images);
     check_folder(lattice_data);   
 
-    // std::cout.precision(17);
-
-    std::cout << "Input Seed\nSeed must not be 0\nInput Seed: ";
-    std::cin >> init_seed;
-    fflush(stdin);
+    init_seed = gen_seed();
 
     seed = init_seed;
     if (seed > 0) {seed = -1 * seed;}
+    std::cout << "Generated seed: " << seed << std::endl;
 
     std::cout << "Input lattice rows: ";
     std::cin >> Rows;
@@ -601,15 +573,12 @@ int main() {
     std::cout << "Input External E Field: ";
     std::cin >> Efield;
     fflush(stdin);
-    // std::cout << "External E Field set to 0 for now" << std::endl;
-    
 
     std::cout << "Coupeling Constant set to 1, Kb" << std::endl;
     fflush(stdin);
 
-    std::cout << "Choose a density for p+\nNumber must be between 0 and 1 (will round down, recomend 0.5): ";
-    std::cin >> Density;
-    fflush(stdin);
+    std::cout << "Setting partical density to be 0.5" << std::endl;
+    Density = 0.5;
 
     KawasakiLattice motorcycle(Rows, Columns, Temp, 1.0, Efield, Density);
     motorcycle.get_density();
@@ -617,10 +586,10 @@ int main() {
     std::cout << "Input number of sweeps to preform: ";
     std::cin >> max_sweeps;
     fflush(stdin);
-    // for (int i = 0; i < total_measures; i++) {measurements[i].resize(max_sweeps);}
 
     motorcycle.get_inputs();
     std::cout << "Will preform " << max_sweeps << " sweeps\n\t" << motorcycle.get_total_sites() << " steps ever sweep" << std::endl;
+    std::cout << "This simulation will not produce any images. For those go to the manual simluation" << std::endl;
 
     std::cout << "\nDo you wish to see the inital lattice? 1 for yes 0 for no: ";
     std::cin >> print_first_lattice;
@@ -637,8 +606,6 @@ int main() {
 
     folder_name = "Temp_" + std::to_string(Temp) + "_Efield_" + std::to_string(Efield) + "_Size_" + std::to_string(Rows) + "x" + std::to_string(Columns) + "_seed_" + std::to_string(init_seed);
 
-    image_output = lattice_images / folder_name;
-    check_folder(image_output);
     data_output = lattice_data / folder_name;
     check_folder(data_output);
     
@@ -650,34 +617,18 @@ int main() {
 
 
     for (int s = 0; s < max_sweeps; s++) {
-        std::array<double, 4> local_measurement;
+        std::array<double, total_measures> local_measurement;
         local_measurement = motorcycle.sweep();
-        // std::cout << "Finished sweep " << s << std::endl;
 
         for (int i = 0; i < total_measures; i++) {measurements[i].push_back(local_measurement[i]);}
 
         sf = motorcycle.structure_factor();
-        // std::cout << "SF[0] = " << sf[0] << " SF[1] = " << sf[1] << std::endl;
 
         measurements[total_measures].push_back(sf[0]); measurements[total_measures + 1].push_back(sf[1]);
-        // std::cout << "M[tm] = " << measurements[total_measures][0] << " M[tm + 1] = " << measurements[total_measures + 1][0] << std::endl;
 
         if ((s % 100000) == 0) {
             std::cout << "Completed Sweep " << s << std::endl;
-            // std::cout << "Measured Current = " << std::setprecision(5) << local_measurement[0] << " Exchanges = " << local_measurement[1] << " N+ = " << local_measurement[2] << " N- = " << local_measurement[3] << std::endl;
-            // std::cout << "Measured Current = " << typeid(local_measurement[0]).name() << " Exchanges = " << typeid(local_measurement[1]).name() << " N+ = " << typeid(local_measurement[2]).name() << " N- = " << typeid(local_measurement[3]).name() << std::endl;
-
-            // measurement_folder.push_back({local_measurement[0], local_measurement[1], local_measurement[2], local_measurement[3]});
-
-            // print lattice to file
-            // 
-            image_filename = std::to_string(s) + "_Current_" + std::to_string(local_measurement[0]) + "_Exchanges_" + std::to_string(local_measurement[1]) + "_Nplus_" + std::to_string(local_measurement[2]) + "_Nminus_" + std::to_string(local_measurement[3]) + ".txt";
-            image_filename = image_output / image_filename;
-            motorcycle.write_lattice(image_filename);
-
         }
-
-
     }
 
     if (print_final_lattice == 1) {
@@ -685,15 +636,11 @@ int main() {
         motorcycle.print_lattice();
     }
 
-    // motorcycle.get_density();
+    motorcycle.get_density();
+    std::cout << "If the above does not reflect a density of 0.5, then something is wrong with the code" << std::endl;
 
     std::string filename = "Temp_" + std::to_string(Temp) + "_Size_" + std::to_string(Rows) + "x" + std::to_string(Columns) + "_seed_" + std::to_string(init_seed) + "_sweeps_" + std::to_string(max_sweeps);
 
-    write_csv(data_output, filename, measurements[0], measurements[1], measurements[total_measures], measurements[total_measures + 1]);
-
-    // for (int i = 0; i < measurements[0].size(); i++) {
-    //     std::cout << "Current: " << measurements[0][i] << std::endl;
-    // }
-
+    write_csv(data_output, filename, measurements[0], measurements[total_measures], measurements[total_measures + 1]);
 
 }
