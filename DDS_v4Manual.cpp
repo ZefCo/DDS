@@ -183,12 +183,14 @@ private:
             if (dir == 1) {rowp = row; colp = (col + 1) % C;}  // right one
             else if (dir == 2) {rowp = (row + 1) % R; colp = col;}  // down one
             else if (dir == 3) {rowp = row; colp = (col - 1 + C) % C;} // left one
+            else {rowp = (row - 1 + R) % R; colp = col;}  // up one - these go against the E field
         }
 
         else {
             if (dir == 1) {rowp = row; colp = (col + 1) % C;}  // right one
             else if (dir == 2) {rowp = (row - 1 + R) % R; colp = col;}  // up one
             else if (dir == 3) {rowp = row; colp = (col - 1 + C) % C;} // left one
+            else {rowp = (row + 1) % R; colp = col;}  // down one - these go against the E field
         }
 
         prime = {rowp, colp};
@@ -226,25 +228,35 @@ public:
         std::array<int, 4> chosen_neighbors = nearest_neighbors(row, col);
         std::array<int, 4> prime_neighbors = nearest_neighbors(rop, cop);
 
-        int rowd = chosen_neighbors[0]; int colr = chosen_neighbors[1]; int rowu = chosen_neighbors[2]; int coll = chosen_neighbors[3];
-        int ropd = prime_neighbors[0]; int copr = prime_neighbors[1]; int ropu = prime_neighbors[2]; int copl = prime_neighbors[3];
+        int rowd = chosen_neighbors[0]; int coll = chosen_neighbors[1]; int rowu = chosen_neighbors[2]; int colr = chosen_neighbors[3];
+        int ropd = prime_neighbors[0]; int copl = prime_neighbors[1]; int ropu = prime_neighbors[2]; int copr = prime_neighbors[3];
 
         if (dir == 1) {        
-            local_energy = (lattice[rowd][col] + lattice[row][coll] + lattice[rowu][col]) * lattice[row][col]; 
+            local_energy = (lattice[rowd][col] + lattice[rowu][col] + lattice[row][coll]) * lattice[row][col]; 
             prime_energy = (lattice[ropd][cop] + lattice[ropu][cop] + lattice[rop][copr]) * lattice[rop][cop];
         }
         else if (dir == 3) {        
             local_energy = (lattice[rowd][col] + lattice[rowu][col] + lattice[row][colr]) * lattice[row][col]; 
-            prime_energy = (lattice[ropd][cop] + lattice[rop][copl] + lattice[ropu][cop]) * lattice[rop][cop];
+            prime_energy = (lattice[ropd][cop] + lattice[ropu][cop] + lattice[rop][copl]) * lattice[rop][cop];
         }
-        else{
+        else if (dir == 2) {
             if (lattice[row][col] == 1) {
-                local_energy = (lattice[row][coll] + lattice[rowu][col] + lattice[row][colr]) * lattice[row][col];
+                local_energy = (lattice[row][coll] + lattice[rowu][col] + lattice[row][colr]) * lattice[row][col]; 
                 prime_energy = (lattice[rop][copl] + lattice[ropd][cop] + lattice[rop][copr]) * lattice[rop][cop];
             }
             else {
-                local_energy = (lattice[row][coll] + lattice[rowd][col] + lattice[row][colr]) * lattice[row][col];
-                prime_energy = (lattice[rop][copl] + lattice[ropu][cop] + lattice[rop][copr]) * lattice[rop][cop];
+                local_energy = (lattice[row][coll] + lattice[row][colr] + lattice[rowd][col]) * lattice[row][col]; 
+                prime_energy = (lattice[rop][copl] + lattice[rop][copr] + lattice[ropu][cop]) * lattice[rop][cop];
+            }
+        }
+        else if (dir == 4) {
+            if (lattice[row][col] == 1) {
+                local_energy = (lattice[row][coll] + lattice[row][colr] + lattice[rowd][col]) * lattice[row][col]; 
+                prime_energy = (lattice[rop][copl] + lattice[rop][copr] + lattice[ropu][cop]) * lattice[rop][cop];
+            }
+            else {
+                local_energy = (lattice[row][coll] + lattice[row][colr] + lattice[rowu][col]) * lattice[row][col];
+                prime_energy = (lattice[rop][copl] + lattice[rop][copr] + lattice[ropd][cop]) * lattice[rop][cop];
             }
         }
 
@@ -384,7 +396,7 @@ public:
             sk = lattice[rran][cran]; 
 
             // std::cout << "\tline 321";
-            dir = random_int(1, 4); // returns a number between 1 and 3
+            dir = random_int(1, 5); // returns a number between 1 and 4
 
             std::array<int, 2> prime_position = nearest_neighbor(rran, cran, dir);
             rrap = prime_position[0]; crap = prime_position[1];  // gets the nearest neighbor in a direction
@@ -396,7 +408,8 @@ public:
                 // nearest_neighbor
                 energy = delta_energy(rran, cran, rrap, crap, dir); // Does not look at the Field
 
-                if (dir == 2) {q = 1;}
+                if (dir == 2) {q = 1;} // q = 1 is in the proper charge direction of the E field
+                else if (dir == 4) {q = -1;} // q = -1 is against the charge direction of the E field
                 else {q = 0;}
 
                 double probability = joltzman[energy] * eoltzman[q];
