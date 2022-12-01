@@ -149,7 +149,7 @@ private:
                 int i = random_int(0, R); // Generate a random position
                 int j = random_int(0, C);
                 int local_site = lattice[i][j]; // get the value at that position
-                if (local_site == 0) {lattice[i][j] = 1; looking = false;} // if it's -1, make it 1, else keep looking
+                if (local_site == -1) {lattice[i][j] = 1; looking = false;} // if it's -1, make it 1, else keep looking
             } while(looking);
         }
 
@@ -158,15 +158,15 @@ private:
         init_eoltzman();
         // print_boltzman();
 
-        std::cout << "Warming up lattice with E = 0 for 15,000 sweeps" << std::endl;
-        for (int s = 0; s < 15000; s++) {dump = sweep();}
+        std::cout << "Warming up lattice with E = 0 for 10,000 sweeps" << std::endl;
+        for (int s = 0; s < 10000; s++) {dump = sweep();}
 
-        std::cout << "Warming up lattice with E = " << SaveE << " for 15,000 sweeps" << std::endl;
+        std::cout << "Warming up lattice with E = " << SaveE << " for 90,000 sweeps" << std::endl;
         eoltzman.clear();
         E = SaveE;
         init_eoltzman();
         // print_boltzman();
-        for (int s = 0; s < 15000; s++) {dump = sweep();}
+        for (int s = 0; s < 90000; s++) {dump = sweep();}
     }
 
 
@@ -483,6 +483,7 @@ public:
     // Constructor
     KawasakiLattice(int rows, int columns, double temp, double coupeling, double efield, float density)
     {
+        // std::cout << "Initializing" << std::endl;
         R = rows;
         C = columns;
         // N = get_total_sites();
@@ -606,7 +607,7 @@ int main() {
     std::cout << "Coupeling Constant set to 1, Kb" << std::endl;
     fflush(stdin);
 
-    std::cout << "Setting partical desntiy to be 0.5" << std::endl;
+    std::cout << "Setting partical density to be 0.5" << std::endl;
     Density = 0.5;
 
     KawasakiLattice motorcycle(Rows, Columns, Temp, 1.0, Efield, Density);
