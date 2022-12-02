@@ -26,7 +26,7 @@ def main():
 
     rows, _ = auto_corr.shape
 
-    sizes, temps, sfk10, sfk01, zen10, zen01, sqr01, sqr10, rad01, rad10 = [], [], [], [], [], [], [], [], [], []
+    sizes, temps, sfk10, sfk01, bc10, bc01, sqr01, sqr10 = [], [], [], [], [], [], [], []
 
     for row in range(rows):
         row_of_interest = auto_corr.iloc[row, :].copy()
@@ -52,9 +52,6 @@ def main():
         orders = []
         seeds = []
 
-        # prefactor01 = (numpy.sin(numpy.pi / orthogonal) * (2*parralel)**-1)**2
-        # prefactor10 = (numpy.sin(numpy.pi / parralel) * (2*orthogonal)**-1)**2
-
         for file in files:
 
             file_parts = re.split("_", str(file.name))
@@ -70,7 +67,7 @@ def main():
         # print(measure_index)
         # break
 
-        sfk10_local, sfk01_local, sqr01_local, sqr10_local, zen01_local, zen10_local, rad10_local, rad01_local = [], [], [], [], [], [], [], []
+        sfk10_local, sfk01_local, sqr01_local, sqr10_local = [], [], [], []
 
         print(f"Working on subfolder:\n{subfolder}")
 
@@ -97,29 +94,16 @@ def main():
 
             ensemble = ensemble[ensemble["sweep"].isin(measure_index)]
             # print(ensemble)
-            ensemble["SFk01"] = 0.5 * ensemble["SFk01"]
-            ensemble["SFk10"] = 0.5 * ensemble["SFk10"]
+            ensemble["SFk01"] = (1 / sites) * ensemble["SFk01"]
+            ensemble["SFk10"] = (1 / sites) * ensemble["SFk10"]
 
             ensemble["SFk01**2"] = ensemble["SFk01"]**2
             ensemble["SFk10**2"] = ensemble["SFk10"]**2
 
-            ensemble["SFk01**4"] = ensemble["SFk01"]**4
-            ensemble["SFk10**4"] = ensemble["SFk10"]**4
-
-            ensemble["Rad01"] = numpy.sqrt(ensemble["SFk01"])
-            ensemble["Rad10"] = numpy.sqrt(ensemble["SFk10"])
-
-            sfk01_local.append(ensemble["SFk01"].mean())
             sfk10_local.append(ensemble["SFk10"].mean())
-
+            sfk01_local.append(ensemble["SFk01"].mean())
             sqr01_local.append(ensemble["SFk01**2"].mean())
-            sqr10_local.append(ensemble["SFk10**2"].mean())
-
-            zen01_local.append(ensemble["SFk01**4"].mean()) 
-            zen10_local.append(ensemble["SFk10**4"].mean())
-
-            rad01_local.append(ensemble["Rad01"].mean())
-            rad10_local.append(ensemble["Rad10"].mean())
+            sqr10_local.append(ensemble["SFk10**2"].mean()) 
 
             # print(sub_frame)
 
@@ -128,28 +112,19 @@ def main():
 
         sqr10_local = numpy.array(sqr10_local).mean()
         sqr01_local = numpy.array(sqr01_local).mean()
-
-        zen10_local = numpy.array(zen10_local).mean()
-        zen01_local = numpy.array(zen01_local).mean()
        
-        rad10_local = numpy.array(rad10_local).mean()
-        rad01_local = numpy.array(rad01_local).mean()
+        bc10_local = 1 - (sqr10_local / (3*(sfk10_local**2)))
+        bc01_local = 1 - (sqr01_local / (3*(sfk01_local**2)))
 
-        sizes.append(size_settings), temps.append(temp_setting)
-        sfk10.append(sfk10_local), sfk01.append(sfk01_local)
-        sqr10.append(sqr10_local), sqr01.append(sqr01_local)
-        zen10.append(zen10_local), zen01.append(zen01_local)
-        rad10.append(rad10_local), rad01.append(rad01_local)
+        sizes.append(size_settings), temps.append(temp_setting), sfk10.append(sfk10_local), sfk01.append(sfk01_local), bc10.append(bc10_local), bc01.append(bc01_local), sqr10.append(sqr10_local), sqr01.append(sqr01_local)
 
         # master = pandas.concat([master, pandas.Series()])
 
-    master = pandas.DataFrame(data={"Size": sizes, "Temp": temps,
-                                    "Rad10": rad10, "SFk10": sfk10, "Sqr10": sqr10, "Zen10": zen10,  
-                                    "Rad01": rad01, "SFk01": sfk01, "Sqr01": sqr01, "Zen01": zen01})
+    master = pandas.DataFrame(data={"Size": sizes, "Temp": temps, "SFk10": sfk10, "SFk01": sfk01, "BC10": bc10, "BC01": bc01, "Sqr10": sqr10, "Sqr01": sqr01})
 
-    # print(master)
+    print(master)
 
-    master.to_csv(cwd / "GCan_11.csv", index = None, header = True)
+    master.to_csv(cwd / "GCan_7.csv", index = None, header = True)
 
 
 

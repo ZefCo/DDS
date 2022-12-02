@@ -6,7 +6,7 @@ cwd = pathlib.Path.cwd()
 dataFolder = cwd / "Data"
 
 tau = 1000
-tmax = 10000000
+tmax = 2000000
 
 
 ac_data = pandas.DataFrame()

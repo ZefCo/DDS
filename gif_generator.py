@@ -113,6 +113,8 @@ for png in png_files:
     frames.append(new_frame)
 
 
-frames[0].save("png2gif.gif", format="GIF", append_images=frames[1:], save_all = True, duration=300) 
+frames[0].save("png2gif.gif", format="GIF", append_images=frames[1:], save_all = True, loop = 0, duration = 225) 
 
 # delete temp image folder
+
+shutil.rmtree(temp_folder)
