@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 tc = 3.17
 
 cwd = pathlib.Path.cwd()
-scaling_folder = cwd / "ScalingImages"
+scaling_folder = cwd / "ScalingImages_BNu"
 
 if not scaling_folder.is_dir():
     scaling_folder.mkdir()
@@ -18,13 +18,13 @@ if not scaling_folder.is_dir():
 
 # spacing = 0.05
 b0 = 1/2
-n0 = 3/2
+n0 = 1.5
 epsilon = 0.3
 steps = 0.05
 
-nu_p = [(n0 - epsilon) + (i*steps) for i in range(int(2*epsilon/steps) + 1)]
+# nu_p = [(n0 - epsilon) + (i*steps) for i in range(int(2*epsilon/steps) + 1)]
 beta = [(b0 - epsilon) + (i*steps) for i in range(int(2*epsilon/steps) + 1)]
-# nu_p = [n0]
+nu_p = [n0 - 0.1, n0 - 0.05, n0, n0 + 0.05, n0 + .1]
 # beta = [b0]
 
 # print(beta)
@@ -63,23 +63,46 @@ for b in beta:
 
             subdata = cannonical_data[cannonical_data["Size"] == rxc].copy()
             subdata = subdata.sort_values("t")
-            subdata = subdata[subdata["abst"] <= 2]
 
             lattice = re.split("x", rxc)
             parallel, orthongonal = int(lattice[0]), int(lattice[1])
 
             subdata["x"] = (subdata["abst"] * (parallel**(1/n)))
+            subdata = subdata[subdata["x"] <= 2]
             # subdata["y"] = parallel**(-(b/n)) * ((2*parallel / numpy.sin(numpy.pi / orthongonal)) * subdata["SFk01"])
             subdata["y"] = parallel**(-(b/n)) * ((numpy.sqrt(parallel*orthongonal)) * subdata["SFk01"])
 
             # subdata["tLo"] = subdata["t"] * (orthongonal**(2/3))
             # subdata = subdata.sort_values("tLp")
 
-            fig.add_trace(go.Scatter(x = subdata["x"], y = subdata["y"], name = f"{rxc}_01", mode = "markers"))
+            fig.add_trace(go.Scatter(x = subdata["x"], y = subdata["y"], name = f"{rxc}", mode = "markers"))
             fig.add_trace(go.Scatter(x = subdata["x"], y = subdata["y"], mode = "lines", line = dict(dash = "dash", color  = "black", width = 0.3)))
-            fig.update_layout(title = f"B = {b}\tNu = {n}")
             # fig.add_trace(go.Scatter(x = subdata["tLp"], y = subdata["SFk10"], name = f"{rxc}_10"))
 
+        fig.update_layout(title = f"B = {b}\tNu = {n}")
 
         # fig.show()
         fig.write_image(str(scaling_folder / figName))
+
+
+# for n in nu_p:
+#     fig2 = go.Figure()
+#     figName2 = f"N_{n}.png"
+
+#     for rxc in sizes:
+
+#         subdata = cannonical_data[cannonical_data["Size"] == rxc].copy()
+#         subdata = subdata.sort_values("t")
+
+#         lattice = re.split("x", rxc)
+#         parallel, orthongonal = int(lattice[0]), int(lattice[1])
+
+#         subdata["x"] = subdata["t"] * (parallel**(1/n))
+#         subdata = subdata[(subdata["x"] <= 5) & (subdata["x"] >= -5)]
+
+#         fig2.add_trace(go.Scatter(x = subdata["x"], y = subdata["BC01"], name = f"{rxc}", mode = "markers"))
+#         fig2.add_trace(go.Scatter(x = subdata["x"], y = subdata["BC01"], mode = "lines", line = dict(dash = "dash", color  = "black", width = 0.3)))
+    
+#     fig2.update_layout(title = f"Nu = {n}")
+
+#     fig2.write_image(str(scaling_folder_2 / figName2))
