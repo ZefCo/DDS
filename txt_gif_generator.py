@@ -74,7 +74,7 @@ def textfile_to_image(textfile_path):
 
 
 
-temp_folder: pathlib.Path = pathlib.Path.cwd() / "TempImages"
+temp_folder: pathlib.Path = pathlib.Path.cwd() / "TempTXTImages"
 if not temp_folder.is_dir():
     temp_folder.mkdir()
 
@@ -113,7 +113,7 @@ for png in png_files:
     frames.append(new_frame)
 
 
-frames[0].save("png2gif.gif", format="GIF", append_images=frames[1:], save_all = True, loop = 0, duration = 225) 
+frames[0].save("txt2gif.gif", format="GIF", append_images=frames[1:], save_all = True, loop = 0, duration = 225) 
 
 # delete temp image folder
 
