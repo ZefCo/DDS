@@ -5,6 +5,9 @@ from PIL import Image, ImageFont, ImageDraw
 import os
 import shutil
 
+'''
+This concerts png files into a gif, for showing the scaling collapse from the plotly graphs.
+'''
 
 temp_folder: pathlib.Path = pathlib.Path.cwd() / "TempPNGImages"
 if not temp_folder.is_dir():

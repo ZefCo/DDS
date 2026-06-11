@@ -5,6 +5,10 @@ import re
 import plotly.graph_objects as go
 
 
+'''
+Generates the Binder Parameter: https://en.wikipedia.org/wiki/Binder_parameter
+'''
+
 cannonical_file = pathlib.Path.cwd() / "GCan_5.csv"
 
 with open(cannonical_file) as open_file:

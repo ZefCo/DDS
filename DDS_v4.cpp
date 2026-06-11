@@ -13,6 +13,8 @@
 # include "HeaderFiles/ran2cpp.h"
 # include "HeaderFiles/Seeder.h"
 
+// Auto generates a seed from the timestamp of when the file is executed.
+
 #define REAL 0
 #define IMAG 1
 

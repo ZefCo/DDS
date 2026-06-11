@@ -12,6 +12,7 @@
 # include <fftw3.h>
 # include "HeaderFiles/ran2cpp.h"
 
+// Manual input of seed. Useful for debugging.
 
 #define REAL 0
 #define IMAG 1

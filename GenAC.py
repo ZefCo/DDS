@@ -2,6 +2,11 @@ import pandas
 import re
 import pathlib
 
+
+'''
+Stiches all the data together.
+'''
+
 cwd = pathlib.Path.cwd()
 dataFolder = cwd / "Data"
 

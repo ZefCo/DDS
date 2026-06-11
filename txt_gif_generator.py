@@ -5,6 +5,9 @@ from PIL import Image, ImageFont, ImageDraw
 import os
 import shutil
 
+'''
+Converts text files (which are the "snapshots" of the DDS system) into a gif.
+'''
 
 PIL_GRAYSCALE = 'L'
 PIL_WIDTH_INDEX = 0

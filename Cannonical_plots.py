@@ -4,6 +4,10 @@ import numpy
 import pathlib
 import re
 
+'''
+Plots the Structure Factor, Binder Parameter, and Specific Heat Plots.
+'''
+
 # line = dict(dash = "dash", color  = "black", width = 0.3)
 
 cannonical_file = pathlib.Path.cwd() / "GCan.csv"
