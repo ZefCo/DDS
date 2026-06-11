@@ -20,3 +20,7 @@ ScalingImages_Nu
 ScalingImages_BNu
 ScalingImages
 Demonstrations
+ScalingImages_NuNu
+TempPNGImages/
+.vscode/
+*.json

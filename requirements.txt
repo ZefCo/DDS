@@ -1,0 +1,8 @@
+for python:
+plotly
+streamlit
+numba
+
+for C++:
+FFTW
+    https://fftw.org/

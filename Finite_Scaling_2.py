@@ -5,6 +5,9 @@ import re
 import plotly.graph_objects as go
 # import pathlib
 
+'''
+Generates some of the finite scaling Graphs
+'''
 tc = 3.17
 
 cwd = pathlib.Path.cwd()

@@ -4,6 +4,10 @@ import pathlib
 import os
 import re
 
+'''
+Generates the data points from the auto correlation.
+'''
+
 
 temp_length = 8
 efield_length = 9

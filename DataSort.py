@@ -1,6 +1,11 @@
 import pathlib
 import re
 
+
+'''
+For sorting files.
+'''
+
 cwd = pathlib.Path.cwd()
 
 dataFolder = cwd / "Data"
